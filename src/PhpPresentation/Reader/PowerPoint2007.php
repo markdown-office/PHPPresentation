@@ -799,6 +799,20 @@ class PowerPoint2007 implements ReaderInterface
         }
     }
 
+    /**
+     * The path of a part of the package, as a URL that reads it.
+     *
+     * `zip://` is the only way to name a file inside an archive, and the name it carries is
+     * the part's own: a picture read out of a package says where it came from, and a caller
+     * can read the bytes that were in the file rather than an encoding of them made again.
+     */
+    protected function zipPath(string $part): string
+    {
+        $file = realpath($this->filename);
+
+        return 'zip://' . (false === $file ? $this->filename : $file) . '#' . $part;
+    }
+
     protected function loadShapeDrawing(XMLReader $document, DOMElement $node, AbstractSlide $oSlide): void
     {
         // Core
@@ -839,6 +853,8 @@ class PowerPoint2007 implements ReaderInterface
                 $pathImage = implode('/', $pathImage);
                 $imageFile = $this->oZip->getFromName($pathImage);
                 if (!empty($imageFile)) {
+                    $oShape->setPath($this->zipPath($pathImage));
+
                     if ($oShape instanceof Gd) {
                         $info = getimagesizefromstring($imageFile);
                         if (!$info) {
@@ -851,6 +867,8 @@ class PowerPoint2007 implements ReaderInterface
                             return;
                         }
                         $oShape->setImageResource($image);
+                        // the bytes are set after the resource, because setting a resource drops them
+                        $oShape->setContents($imageFile);
                     } elseif ($oShape instanceof Base64) {
                         $oShape->setData('data:image/svg+xml;base64,' . base64_encode($imageFile));
                     }

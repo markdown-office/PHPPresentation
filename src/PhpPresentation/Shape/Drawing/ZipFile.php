@@ -29,7 +29,7 @@ class ZipFile extends AbstractDrawingAdapter
     /**
      * @var string
      */
-    protected $path;
+    protected $path = '';
 
     /**
      * Get Path.
