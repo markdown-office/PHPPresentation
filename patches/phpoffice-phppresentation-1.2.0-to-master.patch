@@ -3499,7 +3499,7 @@ index ddf750dfc..3bf1956dc 100644
      {
          if (substr($expr, -1) == '%') {
 diff --git a/src/PhpPresentation/Reader/PowerPoint2007.php b/src/PhpPresentation/Reader/PowerPoint2007.php
-index d93a19168..c29d74401 100644
+index d93a19168..85cb8fcb2 100644
 --- a/src/PhpPresentation/Reader/PowerPoint2007.php
 +++ b/src/PhpPresentation/Reader/PowerPoint2007.php
 @@ -33,14 +33,21 @@ use PhpOffice\PhpPresentation\Exception\FileNotFoundException;
@@ -3645,7 +3645,7 @@ index d93a19168..c29d74401 100644
      }
  
      /**
-@@ -148,6 +229,153 @@ class PowerPoint2007 implements ReaderInterface
+@@ -148,6 +229,169 @@ class PowerPoint2007 implements ReaderInterface
          return $this->loadFile($pFilename);
      }
  
@@ -3691,9 +3691,25 @@ index d93a19168..c29d74401 100644
 +     */
 +    protected function relsOf(string $part): string
 +    {
-+        $folder = trim(dirname('/' . ltrim($part, '/')), '/');
++        $folder = $this->folderOf($part);
 +
 +        return ('' === $folder ? '' : $folder . '/') . '_rels/' . basename($part) . '.rels';
++    }
++
++    /**
++     * Folder of a part of the package, or an empty string for a part at its root.
++     *
++     * The parts of a package are separated by forward slashes, and their names are not paths of
++     * a file system. `dirname()` is a function of the file system, and on Windows it answers
++     * with backslashes: the folder of a part at the root of a package is named `\` there, and
++     * no part of a package is named by one.
++     */
++    protected function folderOf(string $part): string
++    {
++        $part = ltrim($part, '/');
++        $position = strrpos($part, '/');
++
++        return false === $position ? '' : substr($part, 0, $position);
 +    }
 +
 +    /**
@@ -3706,7 +3722,7 @@ index d93a19168..c29d74401 100644
 +    {
 +        $path = 0 === strncmp($target, '/', 1)
 +            ? $target
-+            : dirname('/' . ltrim($relsPart, '/'), 2) . '/' . $target;
++            : $this->folderOf($this->folderOf($relsPart)) . '/' . $target;
 +
 +        $segments = [];
 +        foreach (explode('/', $path) as $segment) {
@@ -3799,7 +3815,7 @@ index d93a19168..c29d74401 100644
      /**
       * Load PhpPresentation Serialized file.
       */
-@@ -158,37 +386,51 @@ class PowerPoint2007 implements ReaderInterface
+@@ -158,37 +402,51 @@ class PowerPoint2007 implements ReaderInterface
          $this->oPhpPresentation->setAllMasterSlides([]);
          $this->filename = $pFilename;
  
@@ -3864,7 +3880,7 @@ index d93a19168..c29d74401 100644
          }
  
          return $this->oPhpPresentation;
-@@ -208,7 +450,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -208,7 +466,8 @@ class PowerPoint2007 implements ReaderInterface
                  }
                  $type = $oElement->getAttribute('type');
                  $oLayout = $this->oPhpPresentation->getLayout();
@@ -3874,7 +3890,7 @@ index d93a19168..c29d74401 100644
                      $oLayout->setCX((float) $oElement->getAttribute('cx'));
                      $oLayout->setCY((float) $oElement->getAttribute('cy'));
                  } else {
-@@ -235,22 +478,29 @@ class PowerPoint2007 implements ReaderInterface
+@@ -235,22 +494,29 @@ class PowerPoint2007 implements ReaderInterface
                  '/cp:coreProperties/dc:title' => 'setTitle',
                  '/cp:coreProperties/dc:description' => 'setDescription',
                  '/cp:coreProperties/dc:subject' => 'setSubject',
@@ -3910,7 +3926,7 @@ index d93a19168..c29d74401 100644
                      }
                  }
              }
-@@ -270,7 +520,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -270,7 +536,7 @@ class PowerPoint2007 implements ReaderInterface
              $path = $oElement->getAttribute('Target');
              $this->oPhpPresentation
                  ->getPresentationProperties()
@@ -3919,7 +3935,7 @@ index d93a19168..c29d74401 100644
          }
      }
  
-@@ -284,7 +534,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -284,7 +550,7 @@ class PowerPoint2007 implements ReaderInterface
          // @phpstan-ignore-next-line
          if ($xmlReader->getDomFromString($sPart)) {
              foreach ($xmlReader->getElements('/Properties/property[@fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"]') as $element) {
@@ -3928,7 +3944,7 @@ index d93a19168..c29d74401 100644
                      continue;
                  }
                  $propertyName = $element->getAttribute('name');
-@@ -383,8 +633,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -383,8 +649,7 @@ class PowerPoint2007 implements ReaderInterface
          $xmlReader = new XMLReader();
          // @phpstan-ignore-next-line
          if ($xmlReader->getDomFromString($sPart)) {
@@ -3938,7 +3954,7 @@ index d93a19168..c29d74401 100644
              // Load the Masterslides
              $this->loadMasterSlides($xmlReader, $fileRels);
              // Continue with loading the slides
-@@ -393,16 +642,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -393,16 +658,16 @@ class PowerPoint2007 implements ReaderInterface
                      continue;
                  }
                  $rId = $oElement->getAttribute('r:id');
@@ -3961,7 +3977,7 @@ index d93a19168..c29d74401 100644
                              }
                          }
                      }
-@@ -424,12 +673,12 @@ class PowerPoint2007 implements ReaderInterface
+@@ -424,12 +689,12 @@ class PowerPoint2007 implements ReaderInterface
              $rId = $oElement->getAttribute('r:id');
              // Get the path to the masterslide from the array with _rels files
              $pathMasterSlide = isset($this->arrayRels[$fileRels][$rId]) ?
@@ -3978,7 +3994,7 @@ index d93a19168..c29d74401 100644
                  }
              }
          }
-@@ -438,7 +687,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -438,7 +703,7 @@ class PowerPoint2007 implements ReaderInterface
      /**
       * Extract data from slide.
       */
@@ -3987,7 +4003,7 @@ index d93a19168..c29d74401 100644
      {
          $xmlReader = new XMLReader();
          // @phpstan-ignore-next-line
-@@ -447,7 +696,19 @@ class PowerPoint2007 implements ReaderInterface
+@@ -447,7 +712,19 @@ class PowerPoint2007 implements ReaderInterface
              // Core
              $oSlide = $this->oPhpPresentation->createSlide();
              $this->oPhpPresentation->setActiveSlideIndex($this->oPhpPresentation->getSlideCount() - 1);
@@ -4008,7 +4024,7 @@ index d93a19168..c29d74401 100644
  
              // Background
              $oElement = $xmlReader->getElement('/p:sld/p:cSld/p:bg/p:bgPr');
-@@ -478,18 +739,11 @@ class PowerPoint2007 implements ReaderInterface
+@@ -478,18 +755,11 @@ class PowerPoint2007 implements ReaderInterface
                  }
                  $oElementImage = $xmlReader->getElement('a:blipFill/a:blip', $oElement);
                  if ($oElementImage instanceof DOMElement) {
@@ -4030,7 +4046,7 @@ index d93a19168..c29d74401 100644
  
                          $tmpBkgImg = tempnam(sys_get_temp_dir(), 'PhpPresentationReaderPpt2007Bkg');
                          file_put_contents($tmpBkgImg, $contentImg);
-@@ -505,17 +759,28 @@ class PowerPoint2007 implements ReaderInterface
+@@ -505,17 +775,28 @@ class PowerPoint2007 implements ReaderInterface
                  }
              }
  
@@ -4064,7 +4080,7 @@ index d93a19168..c29d74401 100644
                      }
  
                      break;
-@@ -524,7 +789,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -524,7 +805,7 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4073,7 +4089,7 @@ index d93a19168..c29d74401 100644
      {
          $xmlReader = new XMLReader();
          // @phpstan-ignore-next-line
-@@ -532,7 +797,22 @@ class PowerPoint2007 implements ReaderInterface
+@@ -532,7 +813,22 @@ class PowerPoint2007 implements ReaderInterface
              // Core
              $oSlideMaster = $this->oPhpPresentation->createMasterSlide();
              $oSlideMaster->setTextStyles(new TextStyle(false));
@@ -4097,7 +4113,7 @@ index d93a19168..c29d74401 100644
  
              // Background
              $oElement = $xmlReader->getElement('/p:sldMaster/p:cSld/p:bg');
-@@ -630,18 +910,6 @@ class PowerPoint2007 implements ReaderInterface
+@@ -630,18 +926,6 @@ class PowerPoint2007 implements ReaderInterface
                  }
              }
  
@@ -4116,7 +4132,7 @@ index d93a19168..c29d74401 100644
              // Load the Layoutslide
              foreach ($xmlReader->getElements('/p:sldMaster/p:sldLayoutIdLst/p:sldLayoutId') as $oElement) {
                  if (!($oElement instanceof DOMElement)) {
-@@ -650,13 +918,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -650,13 +934,13 @@ class PowerPoint2007 implements ReaderInterface
                  $rId = $oElement->getAttribute('r:id');
                  // Get the path to the masterslide from the array with _rels files
                  $pathLayoutSlide = isset($this->arrayRels[$oSlideMaster->getRelsIndex()][$rId]) ?
@@ -4134,7 +4150,7 @@ index d93a19168..c29d74401 100644
                          );
                      }
                  }
-@@ -664,14 +932,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -664,14 +948,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4151,7 +4167,7 @@ index d93a19168..c29d74401 100644
  
              // Name
              $oElement = $xmlReader->getElement('/p:sldLayout/p:cSld');
-@@ -698,7 +966,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -698,7 +982,7 @@ class PowerPoint2007 implements ReaderInterface
              // Shapes
              $oElements = $xmlReader->getElements('/p:sldLayout/p:cSld/p:spTree/*');
              $this->loadSlideShapes($xmlReader, $oSlideLayout, $oElements, $xmlReader);
@@ -4160,14 +4176,14 @@ index d93a19168..c29d74401 100644
  
              return $oSlideLayout;
          }
-@@ -728,9 +996,61 @@ class PowerPoint2007 implements ReaderInterface
+@@ -728,7 +1012,59 @@ class PowerPoint2007 implements ReaderInterface
                      $oSlideMaster->addSchemeColor($oSchemeColor);
                  }
              }
 +            $this->themeFonts = $this->readThemeFonts($xmlReader);
-         }
-     }
- 
++        }
++    }
++
 +    /**
 +     * The fonts of the theme of a master or a notes master.
 +     *
@@ -4205,7 +4221,7 @@ index d93a19168..c29d74401 100644
 +                $oElement = $xmlReader->getElement('/a:theme/a:themeElements/a:fontScheme/' . $fontElement . '/' . $scriptElement);
 +                $fonts['+' . $kind . '-' . $script] = $oElement instanceof DOMElement ? $oElement->getAttribute('typeface') : '';
 +            }
-+        }
+         }
 +
 +        return $fonts;
 +    }
@@ -4217,12 +4233,10 @@ index d93a19168..c29d74401 100644
 +    protected function getTypeface(string $typeface): string
 +    {
 +        return $this->themeFonts[$typeface] ?? $typeface;
-+    }
-+
+     }
+ 
      protected function loadSlideBackground(XMLReader $xmlReader, DOMElement $oElement, AbstractSlide $oSlide): void
-     {
-         // Background color
-@@ -765,15 +1085,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -765,15 +1101,8 @@ class PowerPoint2007 implements ReaderInterface
              $relImg = $this->arrayRels[$oSlide->getRelsIndex()][$oElementImage->getAttribute('r:embed')];
              if (is_array($relImg)) {
                  // File
@@ -4240,7 +4254,7 @@ index d93a19168..c29d74401 100644
  
                  $tmpBkgImg = tempnam(sys_get_temp_dir(), 'PhpPresentationReaderPpt2007Bkg');
                  file_put_contents($tmpBkgImg, $contentImg);
-@@ -786,75 +1099,222 @@ class PowerPoint2007 implements ReaderInterface
+@@ -786,75 +1115,222 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4329,13 +4343,7 @@ index d93a19168..c29d74401 100644
 +            $oShape->setDecorative($this->loadShapeDecorative($document, $oElement));
 +            $oShape->setHyperlink($this->loadShapeHyperlink($document, $oElement));
 +        }
- 
--            // Hyperlink
--            $oElementHlinkClick = $document->getElement('a:hlinkClick', $oElement);
--            if (is_object($oElementHlinkClick)) {
--                $oShape->setHyperlink(
--                    $this->loadHyperlink($document, $oElementHlinkClick, $oShape->getHyperlink())
--                );
++
 +        $oElement = $document->getElement('p:grpSpPr/a:xfrm', $node);
 +        if ($oElement instanceof DOMElement && $oElement->hasAttribute('rot')) {
 +            $oShape->setRotation((int) CommonDrawing::angleToDegrees((int) $oElement->getAttribute('rot')));
@@ -4372,7 +4380,13 @@ index d93a19168..c29d74401 100644
 +        if ($off === $chOff && 1.0 === $scaleX && 1.0 === $scaleY) {
 +            return;
 +        }
-+
+ 
+-            // Hyperlink
+-            $oElementHlinkClick = $document->getElement('a:hlinkClick', $oElement);
+-            if (is_object($oElementHlinkClick)) {
+-                $oShape->setHyperlink(
+-                    $this->loadHyperlink($document, $oElementHlinkClick, $oShape->getHyperlink())
+-                );
 +        $this->applyGroupTransform($oShape, $off, $chOff, $scaleX, $scaleY);
 +    }
 +
@@ -4506,7 +4520,7 @@ index d93a19168..c29d74401 100644
              }
          }
  
-@@ -862,6 +1322,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -862,6 +1338,13 @@ class PowerPoint2007 implements ReaderInterface
          if ($oElement instanceof DOMElement) {
              $oFill = $this->loadStyleFill($document, $oElement);
              $oShape->setFill($oFill);
@@ -4520,7 +4534,7 @@ index d93a19168..c29d74401 100644
          }
  
          $oElement = $document->getElement('p:spPr/a:xfrm', $node);
-@@ -897,7 +1364,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -897,7 +1380,7 @@ class PowerPoint2007 implements ReaderInterface
                  $this->loadShadow($document, $oElement)
              );
          }
@@ -4529,7 +4543,7 @@ index d93a19168..c29d74401 100644
      }
  
      /**
-@@ -905,44 +1372,47 @@ class PowerPoint2007 implements ReaderInterface
+@@ -905,44 +1388,47 @@ class PowerPoint2007 implements ReaderInterface
       */
      protected function loadShadow(XMLReader $document, DOMElement $node): ?Shadow
      {
@@ -4611,7 +4625,7 @@ index d93a19168..c29d74401 100644
              }
          }
  
-@@ -950,21 +1420,126 @@ class PowerPoint2007 implements ReaderInterface
+@@ -950,21 +1436,126 @@ class PowerPoint2007 implements ReaderInterface
      }
  
      /**
@@ -4745,7 +4759,7 @@ index d93a19168..c29d74401 100644
          }
  
          $oElement = $document->getElement('p:spPr/a:xfrm', $node);
-@@ -991,6 +1566,23 @@ class PowerPoint2007 implements ReaderInterface
+@@ -991,6 +1582,23 @@ class PowerPoint2007 implements ReaderInterface
                  $oShape->setHeight((int) CommonDrawing::emuToPixels((int) $oElement->getAttribute('cy')));
              }
          }
@@ -4769,7 +4783,7 @@ index d93a19168..c29d74401 100644
  
          $oElement = $document->getElement('p:nvSpPr/p:nvPr/p:ph', $node);
          if ($oElement instanceof DOMElement) {
-@@ -1011,21 +1603,30 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1011,21 +1619,30 @@ class PowerPoint2007 implements ReaderInterface
          // FBU-20210202+ Read body definitions
          $bodyPr = $document->getElement('p:txBody/a:bodyPr', $node);
          if ($bodyPr instanceof DOMElement) {
@@ -4804,7 +4818,7 @@ index d93a19168..c29d74401 100644
          }
  
          $arrayElements = $document->getElements('p:txBody/a:p', $node);
-@@ -1034,12 +1635,20 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1034,12 +1651,20 @@ class PowerPoint2007 implements ReaderInterface
                  $this->loadParagraph($document, $oElement, $oShape);
              }
          }
@@ -4825,7 +4839,7 @@ index d93a19168..c29d74401 100644
          }
  
          if (count($oShape->getParagraphs()) > 0) {
-@@ -1047,13 +1656,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1047,13 +1672,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4843,7 +4857,7 @@ index d93a19168..c29d74401 100644
          if ($oElement instanceof DOMElement) {
              if ($oElement->hasAttribute('name')) {
                  $oShape->setName($oElement->getAttribute('name'));
-@@ -1061,6 +1671,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1061,6 +1687,8 @@ class PowerPoint2007 implements ReaderInterface
              if ($oElement->hasAttribute('descr')) {
                  $oShape->setDescription($oElement->getAttribute('descr'));
              }
@@ -4852,7 +4866,7 @@ index d93a19168..c29d74401 100644
          }
  
          $oElement = $document->getElement('p:xfrm/a:off', $node);
-@@ -1083,6 +1695,11 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1083,6 +1711,11 @@ class PowerPoint2007 implements ReaderInterface
              }
          }
  
@@ -4864,7 +4878,7 @@ index d93a19168..c29d74401 100644
          $arrayElements = $document->getElements('a:graphic/a:graphicData/a:tbl/a:tblGrid/a:gridCol', $node);
          $oShape->setNumColumns($arrayElements->length);
          $oShape->createRow();
-@@ -1124,6 +1741,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1124,6 +1757,7 @@ class PowerPoint2007 implements ReaderInterface
                          $this->loadParagraph($document, $oElementPara, $oCell);
                      }
                  }
@@ -4872,7 +4886,7 @@ index d93a19168..c29d74401 100644
  
                  $oElementTcPr = $document->getElement('a:tcPr', $oElementCell);
                  if ($oElementTcPr instanceof DOMElement) {
-@@ -1185,13 +1803,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1185,13 +1819,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4889,7 +4903,7 @@ index d93a19168..c29d74401 100644
          if ($oElement instanceof DOMElement) {
              if ($oElement->hasAttribute('name')) {
                  $oShape->setName($oElement->getAttribute('name'));
-@@ -1199,6 +1818,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1199,6 +1834,8 @@ class PowerPoint2007 implements ReaderInterface
              if ($oElement->hasAttribute('descr')) {
                  $oShape->setDescription($oElement->getAttribute('descr'));
              }
@@ -4898,7 +4912,7 @@ index d93a19168..c29d74401 100644
          }
  
          $oElement = $document->getElement('p:xfrm/a:off', $node);
-@@ -1223,110 +1844,31 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1223,110 +1860,31 @@ class PowerPoint2007 implements ReaderInterface
  
          $chartElement = $document->getElement('a:graphic/a:graphicData/c:chart', $node);
          if ($chartElement->hasAttribute('r:id') && isset($this->arrayRels[$this->fileRels][$chartElement->getAttribute('r:id')]['Target'])) {
@@ -5027,7 +5041,7 @@ index d93a19168..c29d74401 100644
                          $oShape->getPlotArea()->setType($shapeType);
                      }
  
-@@ -1345,7 +1887,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1345,7 +1903,7 @@ class PowerPoint2007 implements ReaderInterface
                              $oShape->getPlotArea()->getAxisX()->setMajorTickMark($elementMajorTickMark->getAttribute('val'));
                          }
                          if ($elementMinorTickMark = $xmlReader->getElement('c:minorTickMark', $oElement)) {
@@ -5036,7 +5050,7 @@ index d93a19168..c29d74401 100644
                          }
                          if ($elementTickLabelPosition = $xmlReader->getElement('c:tickLblPos', $oElement)) {
                              $oShape->getPlotArea()->getAxisX()->setTickLabelPosition($elementTickLabelPosition->getAttribute('val'));
-@@ -1360,6 +1902,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1360,6 +1918,8 @@ class PowerPoint2007 implements ReaderInterface
                                  $oShape->getPlotArea()->getAxisX()->setOutline($outline);
                              }
                          }
@@ -5045,7 +5059,7 @@ index d93a19168..c29d74401 100644
                      }
  
                      if ($oElement = $xmlReader->getElement('/c:chartSpace/c:chart/c:plotArea/c:valAx')) {
-@@ -1377,7 +1921,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1377,7 +1937,7 @@ class PowerPoint2007 implements ReaderInterface
                              $oShape->getPlotArea()->getAxisY()->setMajorTickMark($elementMajorTickMark->getAttribute('val'));
                          }
                          if ($elementMinorTickMark = $xmlReader->getElement('c:minorTickMark', $oElement)) {
@@ -5054,7 +5068,7 @@ index d93a19168..c29d74401 100644
                          }
                          if ($elementTickLabelPosition = $xmlReader->getElement('c:tickLblPos', $oElement)) {
                              $oShape->getPlotArea()->getAxisY()->setTickLabelPosition($elementTickLabelPosition->getAttribute('val'));
-@@ -1385,11 +1929,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1385,11 +1945,13 @@ class PowerPoint2007 implements ReaderInterface
                          if ($elementCrosses = $xmlReader->getElement('c:crosses', $oElement)) {
                              $oShape->getPlotArea()->getAxisY()->setCrossesAt($elementCrosses->getAttribute('val'));
                          }
@@ -5069,7 +5083,7 @@ index d93a19168..c29d74401 100644
                      }
  
                      if ($oElement = $xmlReader->getElement('/c:chartSpace/c:chart/c:legend')) {
-@@ -1407,7 +1953,226 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1407,7 +1969,226 @@ class PowerPoint2007 implements ReaderInterface
                      }
                  }
              }
@@ -5297,7 +5311,7 @@ index d93a19168..c29d74401 100644
          }
      }
  
-@@ -1467,8 +2232,9 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1467,8 +2248,9 @@ class PowerPoint2007 implements ReaderInterface
  
              $oElementBuFont = $document->getElement('a:buFont', $oSubElement);
              if ($oElementBuFont instanceof DOMElement) {
@@ -5309,7 +5323,7 @@ index d93a19168..c29d74401 100644
                  }
              }
              $oElementBuChar = $document->getElement('a:buChar', $oSubElement);
-@@ -1484,9 +2250,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1484,9 +2266,8 @@ class PowerPoint2007 implements ReaderInterface
                  if ($oElementBuAutoNum->hasAttribute('type')) {
                      $oParagraph->getBulletStyle()->setBulletNumericStyle($oElementBuAutoNum->getAttribute('type'));
                  }
@@ -5321,7 +5335,7 @@ index d93a19168..c29d74401 100644
              }
              $oElementBuClr = $document->getElement('a:buClr', $oSubElement);
              if ($oElementBuClr instanceof DOMElement) {
-@@ -1501,7 +2266,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1501,7 +2282,7 @@ class PowerPoint2007 implements ReaderInterface
                  $oParagraph->getBulletStyle()->setBulletColor($oColor);
              }
          }
@@ -5330,7 +5344,7 @@ index d93a19168..c29d74401 100644
          foreach ($arraySubElements as $oSubElement) {
              if (!($oSubElement instanceof DOMElement)) {
                  continue;
-@@ -1509,11 +2274,18 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1509,11 +2290,18 @@ class PowerPoint2007 implements ReaderInterface
              if ('a:br' == $oSubElement->tagName) {
                  $oParagraph->createBreak();
              }
@@ -5352,7 +5366,7 @@ index d93a19168..c29d74401 100644
                      if ($oElementrPr->hasAttribute('b')) {
                          $att = $oElementrPr->getAttribute('b');
                          $oText->getFont()->setBold('true' == $att || '1' == $att ? true : false);
-@@ -1542,14 +2314,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1542,14 +2330,14 @@ class PowerPoint2007 implements ReaderInterface
                      }
                      // Color
                      $oElementSrgbClr = $document->getElement('a:solidFill/a:srgbClr', $oElementrPr);
@@ -5369,7 +5383,7 @@ index d93a19168..c29d74401 100644
                          $oText->setHyperlink(
                              $this->loadHyperlink($document, $oElementHlinkClick, $oText->getHyperlink())
                          );
-@@ -1558,28 +2330,30 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1558,28 +2346,30 @@ class PowerPoint2007 implements ReaderInterface
                      // Font
                      $oElementFontFormat = null;
                      $oElementFontFormatComplexScript = $document->getElement('a:cs', $oElementrPr);
@@ -5407,7 +5421,7 @@ index d93a19168..c29d74401 100644
                          }
                          if ($oElementFont->hasAttribute('panose')) {
                              $oText->getFont()->setPanose($oElementFont->getAttribute('panose'));
-@@ -1588,11 +2362,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1588,11 +2378,16 @@ class PowerPoint2007 implements ReaderInterface
                              $oText->getFont()->setPitchFamily((int) $oElementFont->getAttribute('pitchFamily'));
                          }
                          if ($oElementFont->hasAttribute('charset')) {
@@ -5427,7 +5441,7 @@ index d93a19168..c29d74401 100644
                      $oText->setText($oSubSubElement->nodeValue);
                  }
              }
-@@ -1605,7 +2384,15 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1605,7 +2400,15 @@ class PowerPoint2007 implements ReaderInterface
              $hyperlink->setTooltip($element->getAttribute('tooltip'));
          }
          if ($element->hasAttribute('r:id') && isset($this->arrayRels[$this->fileRels][$element->getAttribute('r:id')]['Target'])) {
@@ -5444,7 +5458,7 @@ index d93a19168..c29d74401 100644
          }
          if ($subElementExt = $xmlReader->getElement('a:extLst/a:ext', $element)) {
              if ($subElementExt->hasAttribute('uri') && $subElementExt->getAttribute('uri') == '{A12FA001-AC4F-418D-AE19-62706E023703}') {
-@@ -1647,13 +2434,49 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1647,13 +2450,49 @@ class PowerPoint2007 implements ReaderInterface
          $oColor->setRGB($oElement->getAttribute('val'));
          $oElementAlpha = $xmlReader->getElement('a:alpha', $oElement);
          if ($oElementAlpha instanceof DOMElement && $oElementAlpha->hasAttribute('val')) {
@@ -5496,7 +5510,7 @@ index d93a19168..c29d74401 100644
      protected function loadStyleFill(XMLReader $xmlReader, DOMElement $oElement): ?Fill
      {
          // Gradient fill
-@@ -1680,6 +2503,29 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1680,6 +2519,29 @@ class PowerPoint2007 implements ReaderInterface
              return $oFill;
          }
  
@@ -5526,7 +5540,7 @@ index d93a19168..c29d74401 100644
          // Solid fill
          $oElementFill = $xmlReader->getElement('a:solidFill', $oElement);
          if ($oElementFill instanceof DOMElement) {
-@@ -1694,6 +2540,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1694,6 +2556,16 @@ class PowerPoint2007 implements ReaderInterface
              return $oFill;
          }
  
@@ -5543,7 +5557,7 @@ index d93a19168..c29d74401 100644
          return null;
      }
  
-@@ -1715,9 +2571,101 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1715,9 +2587,101 @@ class PowerPoint2007 implements ReaderInterface
          return null;
      }
  
@@ -5646,7 +5660,7 @@ index d93a19168..c29d74401 100644
          if (false !== $sPart) {
              $xmlReader = new XMLReader();
              // @phpstan-ignore-next-line
-@@ -1738,11 +2686,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1738,11 +2702,16 @@ class PowerPoint2007 implements ReaderInterface
      /**
       * @param AbstractSlide|Note $oSlide
       * @param DOMNodeList<DOMNode> $oElements
@@ -5664,7 +5678,7 @@ index d93a19168..c29d74401 100644
          foreach ($oElements as $oNode) {
              if (!($oNode instanceof DOMElement)) {
                  continue;
-@@ -1751,22 +2704,34 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1751,22 +2720,34 @@ class PowerPoint2007 implements ReaderInterface
                  case 'p:graphicFrame':
                      if ($oSlide instanceof AbstractSlide) {
                          if ($document->elementExists('a:graphic/a:graphicData/a:tbl', $oNode)) {
