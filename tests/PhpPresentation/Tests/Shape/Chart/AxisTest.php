@@ -246,5 +246,9 @@ class AxisTest extends TestCase
 
         self::assertInstanceOf(Axis::class, $object->setTickLabelSkip(-1));
         self::assertNull($object->getTickLabelSkip());
+
+        // And none above what an unsigned short holds.
+        self::assertInstanceOf(Axis::class, $object->setTickLabelSkip(65536));
+        self::assertSame(65535, $object->getTickLabelSkip());
     }
 }
