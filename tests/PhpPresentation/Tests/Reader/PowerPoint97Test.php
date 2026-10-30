@@ -170,8 +170,11 @@ class PowerPoint97Test extends TestCase
     }
 
     /**
-     * The file of the test above is a presentation this Reader reads; only the part of the
-     * format it does not know yet stops it.
+     * The file of the test above is a presentation this Reader recognises; only the part of
+     * the format it does not know yet stops it.
+     *
+     * The assertion holds whether the change is in or not — `canRead()` reads no stream at
+     * all — so it is a guard on the fixture and not coverage of the change.
      */
     public function testCanReadFileWithoutPicturesStream(): void
     {
