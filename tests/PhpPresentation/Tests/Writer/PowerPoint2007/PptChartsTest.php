@@ -837,27 +837,85 @@ class PptChartsTest extends PhpPresentationTestCase
         $this->assertIsSchemaECMA376Valid();
     }
 
-    public function testAxisXUnit(): void
+    public function testAxisXTakesNoMajorUnit(): void
     {
-        $value = mt_rand(1, 100);
-
         $oSeries = new Series('Downloads', $this->seriesData);
         $oLine = new Line();
         $oLine->addSeries($oSeries);
         $oShape = $this->oPresentation->getActiveSlide()->createChartShape();
         $oShape->getPlotArea()->setType($oLine);
 
-        $elementMax = '/c:chartSpace/c:chart/c:plotArea/c:catAx/c:tickLblSkip';
+        $elementSkip = '/c:chartSpace/c:chart/c:plotArea/c:catAx/c:tickLblSkip';
 
-        $this->assertZipXmlElementNotExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementMax);
+        $this->assertZipXmlElementNotExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementSkip);
 
         $this->assertIsSchemaECMA376Valid();
 
-        $oShape->getPlotArea()->getAxisX()->setMajorUnit($value);
+        // A category axis has no numeric scale, so a major unit is not a distance between two
+        // of its ticks. It was written as a tick label skip, which counts labels and takes a
+        // whole number: a major unit of 2.5 went into the file as a count of two and a half.
+        $oShape->getPlotArea()->getAxisX()->setMajorUnit(2.5);
         $this->resetPresentationFile();
 
-        $this->assertZipXmlElementExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementMax);
-        $this->assertZipXmlAttributeEquals('ppt/charts/' . $oShape->getIndexedFilename(), $elementMax, 'val', $value);
+        $this->assertZipXmlElementNotExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementSkip);
+
+        $this->assertIsSchemaECMA376Valid();
+    }
+
+
+    public function testAxisXTickLabelSkip(): void
+    {
+        $oSeries = new Series('Downloads', $this->seriesData);
+        $oLine = new Line();
+        $oLine->addSeries($oSeries);
+        $oShape = $this->oPresentation->getActiveSlide()->createChartShape();
+        $oShape->getPlotArea()->setType($oLine);
+
+        $elementSkip = '/c:chartSpace/c:chart/c:plotArea/c:catAx/c:tickLblSkip';
+
+        $this->assertZipXmlElementNotExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementSkip);
+
+        $this->assertIsSchemaECMA376Valid();
+
+        $oShape->getPlotArea()->getAxisX()->setTickLabelSkip(3);
+        $this->resetPresentationFile();
+
+        $this->assertZipXmlElementExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementSkip);
+        $this->assertZipXmlAttributeEquals('ppt/charts/' . $oShape->getIndexedFilename(), $elementSkip, 'val', '3');
+
+        // The schema names the element after the label offset, and the writer has to follow it.
+        self::assertSame(
+            [
+                'c:axId',
+                'c:scaling',
+                'c:delete',
+                'c:axPos',
+                'c:title',
+                'c:numFmt',
+                'c:majorTickMark',
+                'c:minorTickMark',
+                'c:tickLblPos',
+                'c:spPr',
+                'c:txPr',
+                'c:crossAx',
+                'c:crosses',
+                'c:lblAlgn',
+                'c:lblOffset',
+                'c:tickLblSkip',
+            ],
+            $this->getChildElementNames(
+                'ppt/charts/' . $oShape->getIndexedFilename(),
+                '/c:chartSpace/c:chart/c:plotArea/c:catAx'
+            )
+        );
+
+        $this->assertIsSchemaECMA376Valid();
+
+        // The schema holds no count of zero: no label is skipped, and nothing is written.
+        $oShape->getPlotArea()->getAxisX()->setTickLabelSkip(0);
+        $this->resetPresentationFile();
+
+        $this->assertZipXmlElementNotExists('ppt/charts/' . $oShape->getIndexedFilename(), $elementSkip);
 
         $this->assertIsSchemaECMA376Valid();
     }
