@@ -485,6 +485,7 @@ class PowerPoint97 implements ReaderInterface
         $this->streamCurrentUser = $oOLE->getStream($oOLE->currentUser);
 
         // Get pictures data
+        // A presentation that holds no picture has no Pictures stream: OLERead leaves its id at null.
         $this->streamPictures = null;
         if (null !== $oOLE->pictures) {
             $this->streamPictures = $oOLE->getStream($oOLE->pictures);
