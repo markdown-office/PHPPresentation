@@ -44,6 +44,9 @@ class Axis implements ComparableInterface
 
     public const DEFAULT_FORMAT_CODE = 'general';
 
+    /** The largest count of labels the schema holds: `ST_Skip` is an unsigned short. */
+    public const MAX_TICK_LABEL_SKIP = 65535;
+
     /**
      * Title.
      *
@@ -374,12 +377,15 @@ class Axis implements ComparableInterface
     /**
      * The number of tick labels to skip between the labels that are drawn.
      *
-     * The count is a number of labels, and the schema holds no count of zero: a skip of
-     * zero or less is kept as no skip at all, and nothing is written for it.
+     * The count is a number of labels, and the schema holds it as an unsigned short: a
+     * count of zero is not one, and a count above what a short holds is not one
+     * either. A skip of zero or less is kept as no skip at all, and nothing is
+     * written for it; a skip above the largest the schema holds is kept as that
+     * largest.
      */
     public function setTickLabelSkip(?int $skip = null): self
     {
-        $this->tickLabelSkip = (null !== $skip && $skip > 0) ? $skip : null;
+        $this->tickLabelSkip = (null !== $skip && $skip > 0) ? min($skip, self::MAX_TICK_LABEL_SKIP) : null;
 
         return $this;
     }
