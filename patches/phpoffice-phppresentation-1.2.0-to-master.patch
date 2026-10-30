@@ -13119,7 +13119,7 @@ index 185abf1b5..053d04a74 100644
              }
          }
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/PptCharts.php b/src/PhpPresentation/Writer/PowerPoint2007/PptCharts.php
-index a9a0ec758..2979629b8 100644
+index a9a0ec758..ce4d5e876 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/PptCharts.php
 +++ b/src/PhpPresentation/Writer/PowerPoint2007/PptCharts.php
 @@ -30,6 +30,7 @@ use PhpOffice\PhpPresentation\Shape\Chart;
@@ -13240,7 +13240,7 @@ index a9a0ec758..2979629b8 100644
 -     * @param XMLWriter $objWriter XML Writer
 +     * `showLeaderLines` is not one of these: it defaults to true and draws a line to a label, so a
 +     * series that shows no label has nothing for it to lead to.
-+     */
+      */
 +    protected function hasDataLabel(Series $series): bool
 +    {
 +        return $series->hasShowSeriesName()
@@ -13253,7 +13253,7 @@ index a9a0ec758..2979629b8 100644
 +    /**
 +     * The plate a data label sits on. A series that never named a label fill writes no `c:spPr`
 +     * at all, rather than an empty one, and the application draws the label as it always did.
-      */
++     */
 +    protected function writeDataLabelsFill(XMLWriter $objWriter, Series $series): void
 +    {
 +        $fill = $series->getLabelFill();
@@ -13297,8 +13297,24 @@ index a9a0ec758..2979629b8 100644
          $objWriter->writeAttribute('dirty', '0');
          $objWriter->endElement();
  
-@@ -731,28 +774,43 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -729,31 +772,48 @@ class PptCharts extends AbstractDecoratorWriter
+             $this->writeSingleValueOrReference($objWriter, $includeSheet, $series->getTitle(), $coords);
+             $objWriter->endElement();
  
++            // The schema names the shape properties of a series right after its title, and a
++            // series in another order is one PowerPoint has to repair before it opens.
++            $seriesFill = $series->getFill();
++            if (Fill::FILL_NONE != $seriesFill->getFillType()
++                && Fill::FILL_UNSET != $seriesFill->getFillType()
++            ) {
++                // c:spPr
++                $objWriter->startElement('c:spPr');
++                // Write fill
++                $this->writeFill($objWriter, $seriesFill);
++                // ## c:spPr
++                $objWriter->endElement();
++            }
++
              // c:ser > c:dLbls
              // @link : https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.charts.areachartseries.aspx
 -            $objWriter->startElement('c:dLbls');
@@ -13336,29 +13352,36 @@ index a9a0ec758..2979629b8 100644
 -            $objWriter->endElement();
 +                // c:ser > c:dLbls > c:showPercent
 +                $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
-+
-+                // c:ser > ##c:dLbls
-+                $objWriter->endElement();
-+            }
  
 -            if (Fill::FILL_NONE != $series->getFill()->getFillType()) {
-+            $seriesFill = $series->getFill();
-+            if (Fill::FILL_NONE != $seriesFill->getFillType()
-+                && Fill::FILL_UNSET != $seriesFill->getFillType()
-+            ) {
-                 // c:spPr
-                 $objWriter->startElement('c:spPr');
-                 // Write fill
+-                // c:spPr
+-                $objWriter->startElement('c:spPr');
+-                // Write fill
 -                $this->writeFill($objWriter, $series->getFill());
-+                $this->writeFill($objWriter, $seriesFill);
-                 // ## c:spPr
+-                // ## c:spPr
++                // c:ser > ##c:dLbls
                  $objWriter->endElement();
              }
-@@ -834,20 +892,29 @@ class PptCharts extends AbstractDecoratorWriter
+ 
+@@ -834,20 +894,43 @@ class PptCharts extends AbstractDecoratorWriter
              $this->writeSingleValueOrReference($objWriter, $includeSheet, $series->getTitle(), $coords);
              $objWriter->endElement();
  
 -            // Fills for points?
++            // The schema names the shape properties of a series right after its title, and a
++            // series in another order is one PowerPoint has to repair before it opens.
++            $seriesFill = $series->getFill();
++            if (Fill::FILL_NONE != $seriesFill->getFillType()
++                && Fill::FILL_UNSET != $seriesFill->getFillType()
++            ) {
++                // c:spPr
++                $objWriter->startElement('c:spPr');
++                // Write fill
++                $this->writeFill($objWriter, $seriesFill);
++                // ## c:spPr
++                $objWriter->endElement();
++            }
++
 +            // Fills & outlines for points?
              $dataPointFills = $series->getDataPointFills();
 -            foreach ($dataPointFills as $key => $value) {
@@ -13388,7 +13411,7 @@ index a9a0ec758..2979629b8 100644
                      // ## c:spPr
                      $objWriter->endElement();
                  }
-@@ -856,101 +923,109 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -856,102 +939,97 @@ class PptCharts extends AbstractDecoratorWriter
                  $objWriter->endElement();
              }
  
@@ -13550,29 +13573,36 @@ index a9a0ec758..2979629b8 100644
 +
 +                // c:showLeaderLines
 +                $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
-+
-+                $objWriter->endElement();
-+            }
  
-             // c:spPr
+-            // c:spPr
 -            if (Fill::FILL_NONE != $series->getFill()->getFillType()) {
-+            $seriesFill = $series->getFill();
-+            if (Fill::FILL_NONE != $seriesFill->getFillType()
-+                && Fill::FILL_UNSET != $seriesFill->getFillType()
-+            ) {
-                 // c:spPr
-                 $objWriter->startElement('c:spPr');
-                 // Write fill
+-                // c:spPr
+-                $objWriter->startElement('c:spPr');
+-                // Write fill
 -                $this->writeFill($objWriter, $series->getFill());
-+                $this->writeFill($objWriter, $seriesFill);
-                 // ## c:spPr
+-                // ## c:spPr
                  $objWriter->endElement();
              }
-@@ -1046,20 +1121,29 @@ class PptCharts extends AbstractDecoratorWriter
+ 
+@@ -1046,20 +1124,43 @@ class PptCharts extends AbstractDecoratorWriter
              $this->writeSingleValueOrReference($objWriter, $includeSheet, $series->getTitle(), $coords);
              $objWriter->endElement();
  
 -            // Fills for points?
++            // The schema names the shape properties of a series right after its title, and a
++            // series in another order is one PowerPoint has to repair before it opens.
++            $seriesFill = $series->getFill();
++            if (Fill::FILL_NONE != $seriesFill->getFillType()
++                && Fill::FILL_UNSET != $seriesFill->getFillType()
++            ) {
++                // c:spPr
++                $objWriter->startElement('c:spPr');
++                // Write fill
++                $this->writeFill($objWriter, $seriesFill);
++                // ## c:spPr
++                $objWriter->endElement();
++            }
++
 +            // Fills & outlines for points?
              $dataPointFills = $series->getDataPointFills();
 -            foreach ($dataPointFills as $key => $value) {
@@ -13602,7 +13632,7 @@ index a9a0ec758..2979629b8 100644
                      // ## c:spPr
                      $objWriter->endElement();
                  }
-@@ -1068,87 +1152,102 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -1068,88 +1169,90 @@ class PptCharts extends AbstractDecoratorWriter
                  $objWriter->endElement();
              }
  
@@ -13713,53 +13743,46 @@ index a9a0ec758..2979629b8 100644
  
 -            $objWriter->endElement();
 +                $objWriter->endElement();
-+
-+                $objWriter->endElement();
  
 -            // c:showVal
 -            $this->writeElementWithValAttribute($objWriter, 'c:showVal', $series->hasShowValue() ? '1' : '0');
-+                // c:showVal
-+                $this->writeElementWithValAttribute($objWriter, 'c:showVal', $series->hasShowValue() ? '1' : '0');
++                $objWriter->endElement();
  
 -            // c:showCatName
 -            $this->writeElementWithValAttribute($objWriter, 'c:showCatName', $series->hasShowCategoryName() ? '1' : '0');
-+                // c:showCatName
-+                $this->writeElementWithValAttribute($objWriter, 'c:showCatName', $series->hasShowCategoryName() ? '1' : '0');
++                // c:showVal
++                $this->writeElementWithValAttribute($objWriter, 'c:showVal', $series->hasShowValue() ? '1' : '0');
  
 -            // c:showSerName
 -            $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
-+                // c:showSerName
-+                $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
++                // c:showCatName
++                $this->writeElementWithValAttribute($objWriter, 'c:showCatName', $series->hasShowCategoryName() ? '1' : '0');
  
 -            // c:showPercent
 -            $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
-+                // c:showPercent
-+                $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
++                // c:showSerName
++                $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
  
 -            // c:showLeaderLines
 -            $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
++                // c:showPercent
++                $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
+ 
+-            $objWriter->endElement();
 +                // c:showLeaderLines
 +                $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
  
--            $objWriter->endElement();
-+                $objWriter->endElement();
-+            }
- 
-             // c:spPr
+-            // c:spPr
 -            if (Fill::FILL_NONE != $series->getFill()->getFillType()) {
-+            $seriesFill = $series->getFill();
-+            if (Fill::FILL_NONE != $seriesFill->getFillType()
-+                && Fill::FILL_UNSET != $seriesFill->getFillType()
-+            ) {
-                 // c:spPr
-                 $objWriter->startElement('c:spPr');
-                 // Write fill
+-                // c:spPr
+-                $objWriter->startElement('c:spPr');
+-                // Write fill
 -                $this->writeFill($objWriter, $series->getFill());
-+                $this->writeFill($objWriter, $seriesFill);
-                 // ## c:spPr
+-                // ## c:spPr
                  $objWriter->endElement();
              }
-@@ -1235,15 +1334,17 @@ class PptCharts extends AbstractDecoratorWriter
+ 
+@@ -1235,15 +1338,17 @@ class PptCharts extends AbstractDecoratorWriter
              $this->writeSingleValueOrReference($objWriter, $includeSheet, $series->getTitle(), $coords);
              $objWriter->endElement();
  
@@ -13780,7 +13803,7 @@ index a9a0ec758..2979629b8 100644
                  // c:dPt/##c:spPr
                  $objWriter->endElement();
                  // ##c:dPt
-@@ -1272,87 +1373,93 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -1272,87 +1377,96 @@ class PptCharts extends AbstractDecoratorWriter
              ++$seriesIndex;
          }
  
@@ -13920,8 +13943,9 @@ index a9a0ec758..2979629b8 100644
 +                $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
 +                $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
 +                $this->writeElementWithValAttribute($objWriter, 'c:showBubbleSize', '0');
-+                $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
 +
++                // The schema names the separator before the leader lines, and a data label
++                // block in another order is one PowerPoint has to repair before it opens.
 +                $separator = $series->getSeparator();
 +                if (!empty($separator) && PHP_EOL != $separator) {
 +                    // c:dLbls\c:separator
@@ -13930,6 +13954,8 @@ index a9a0ec758..2979629b8 100644
  
 -            // c:dLbls\
 -            $objWriter->endElement();
++                $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
++
 +                // c:dLbls\
 +                $objWriter->endElement();
 +            }
@@ -13941,7 +13967,7 @@ index a9a0ec758..2979629b8 100644
          $this->writeElementWithValAttribute($objWriter, 'c:holeSize', (string) $subject->getHoleSize());
  
          $objWriter->endElement();
-@@ -1395,109 +1502,116 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -1395,109 +1509,116 @@ class PptCharts extends AbstractDecoratorWriter
              $this->writeSingleValueOrReference($objWriter, $includeSheet, $series->getTitle(), $coords);
              $objWriter->endElement();
  
@@ -14124,7 +14150,7 @@ index a9a0ec758..2979629b8 100644
  
              // Write X axis data
              $axisXData = array_keys($series->getValues());
-@@ -1566,98 +1680,112 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -1566,98 +1687,112 @@ class PptCharts extends AbstractDecoratorWriter
              $objWriter->writeAttribute('val', $subject->getExplosion());
              $objWriter->endElement();
  
@@ -14294,7 +14320,7 @@ index a9a0ec758..2979629b8 100644
  
              // Write X axis data
              $axisXData = array_keys($series->getValues());
-@@ -1733,84 +1861,96 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -1733,84 +1868,96 @@ class PptCharts extends AbstractDecoratorWriter
              // Marker
              $this->writeSeriesMarker($objWriter, $series->getMarker());
  
@@ -14446,7 +14472,7 @@ index a9a0ec758..2979629b8 100644
  
              // Write X axis data
              $axisXData = array_keys($series->getValues());
-@@ -1911,83 +2051,95 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -1911,83 +2058,95 @@ class PptCharts extends AbstractDecoratorWriter
              // Marker
              $this->writeSeriesMarker($objWriter, $series->getMarker());
  
@@ -14596,7 +14622,7 @@ index a9a0ec758..2979629b8 100644
  
              // Write X axis data
              $axisXData = array_keys($series->getValues());
-@@ -2076,90 +2228,102 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -2076,90 +2235,102 @@ class PptCharts extends AbstractDecoratorWriter
              // Marker
              $this->writeSeriesMarker($objWriter, $series->getMarker());
  
@@ -14707,30 +14733,33 @@ index a9a0ec758..2979629b8 100644
  
 -            $objWriter->endElement();
 +                $objWriter->endElement();
++
++                $objWriter->endElement();
  
 -            // c:showLegendKey
 -            $this->writeElementWithValAttribute($objWriter, 'c:showLegendKey', $series->hasShowLegendKey() ? '1' : '0');
-+                $objWriter->endElement();
- 
--            // c:showVal
--            $this->writeElementWithValAttribute($objWriter, 'c:showVal', $series->hasShowValue() ? '1' : '0');
 +                // c:showLegendKey
 +                $this->writeElementWithValAttribute($objWriter, 'c:showLegendKey', $series->hasShowLegendKey() ? '1' : '0');
  
--            // c:showCatName
--            $this->writeElementWithValAttribute($objWriter, 'c:showCatName', $series->hasShowCategoryName() ? '1' : '0');
+-            // c:showVal
+-            $this->writeElementWithValAttribute($objWriter, 'c:showVal', $series->hasShowValue() ? '1' : '0');
 +                // c:showVal
 +                $this->writeElementWithValAttribute($objWriter, 'c:showVal', $series->hasShowValue() ? '1' : '0');
  
--            // c:showSerName
--            $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
+-            // c:showCatName
+-            $this->writeElementWithValAttribute($objWriter, 'c:showCatName', $series->hasShowCategoryName() ? '1' : '0');
 +                // c:showCatName
 +                $this->writeElementWithValAttribute($objWriter, 'c:showCatName', $series->hasShowCategoryName() ? '1' : '0');
  
--            // c:showPercent
--            $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
+-            // c:showSerName
+-            $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
 +                // c:showSerName
 +                $this->writeElementWithValAttribute($objWriter, 'c:showSerName', $series->hasShowSeriesName() ? '1' : '0');
+ 
+-            // c:showPercent
+-            $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
++                // c:showPercent
++                $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
  
 -            // c:separator
 -            $separator = $series->getSeparator();
@@ -14738,11 +14767,6 @@ index a9a0ec758..2979629b8 100644
 -                // c:dLbls\c:separator
 -                $objWriter->writeElement('c:separator', $separator);
 -            }
-+                // c:showPercent
-+                $this->writeElementWithValAttribute($objWriter, 'c:showPercent', $series->hasShowPercentage() ? '1' : '0');
- 
--            // c:showLeaderLines
--            $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
 +                // c:separator
 +                $separator = $series->getSeparator();
 +                if (!empty($separator) && PHP_EOL != $separator) {
@@ -14750,16 +14774,18 @@ index a9a0ec758..2979629b8 100644
 +                    $objWriter->writeElement('c:separator', $separator);
 +                }
  
--            $objWriter->endElement();
+-            // c:showLeaderLines
+-            $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
 +                // c:showLeaderLines
 +                $this->writeElementWithValAttribute($objWriter, 'c:showLeaderLines', $series->hasShowLeaderLines() ? '1' : '0');
-+
+ 
+-            $objWriter->endElement();
 +                $objWriter->endElement();
 +            }
  
              // Write X axis data
              $axisXData = array_keys($series->getValues());
-@@ -2406,7 +2570,7 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -2406,7 +2577,7 @@ class PptCharts extends AbstractDecoratorWriter
  
              // a:rPr
              $objWriter->startElement('a:rPr');
@@ -14768,7 +14794,7 @@ index a9a0ec758..2979629b8 100644
              $objWriter->writeAttribute('dirty', '0');
              $objWriter->endElement();
  
-@@ -2418,7 +2582,7 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -2418,7 +2589,7 @@ class PptCharts extends AbstractDecoratorWriter
  
              // a:endParaRPr
              $objWriter->startElement('a:endParaRPr');
@@ -14777,7 +14803,7 @@ index a9a0ec758..2979629b8 100644
              $objWriter->writeAttribute('dirty', '0');
              $objWriter->endElement();
  
-@@ -2438,7 +2602,10 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -2438,7 +2609,10 @@ class PptCharts extends AbstractDecoratorWriter
          // c:numFmt
          $objWriter->startElement('c:numFmt');
          $objWriter->writeAttribute('formatCode', $oAxis->getFormatCode());
@@ -14789,7 +14815,7 @@ index a9a0ec758..2979629b8 100644
          $objWriter->endElement();
  
          // c:majorTickMark
-@@ -2480,7 +2647,7 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -2480,7 +2654,7 @@ class PptCharts extends AbstractDecoratorWriter
          $objWriter->startElement('a:defRPr');
          $objWriter->writeAttribute('b', ($oAxis->getTickLabelFont()->isBold() ? 'true' : 'false'));
          $objWriter->writeAttribute('i', ($oAxis->getTickLabelFont()->isItalic() ? 'true' : 'false'));
@@ -14798,7 +14824,7 @@ index a9a0ec758..2979629b8 100644
          $objWriter->writeAttribute('sz', ($oAxis->getTickLabelFont()->getSize() * 100));
          $objWriter->writeAttribute('u', $oAxis->getTickLabelFont()->getUnderline());
          $objWriter->writeAttributeIf($oAxis->getTickLabelFont()->getBaseline() !== 0, 'baseline', $oAxis->getTickLabelFont()->getBaseline());
-@@ -2508,7 +2675,7 @@ class PptCharts extends AbstractDecoratorWriter
+@@ -2508,7 +2682,7 @@ class PptCharts extends AbstractDecoratorWriter
  
          // a:endParaRPr
          $objWriter->startElement('a:endParaRPr');
