@@ -2327,6 +2327,14 @@ class PptChartsTest extends PhpPresentationTestCase
         // A series that names no fill of its own writes no shape properties at all.
         $oSeries->getFill()->setFillType(Fill::FILL_SOLID)->setStartColor(new Color(Color::COLOR_BLUE));
 
+        // A data point of its own, so that the shape properties are pinned against
+        // it and not only against the labels. The area chart writes no data points
+        // at all, which is a defect of its own and not of this pull request.
+        $writesDataPoints = $chartType !== Area::class;
+        if ($writesDataPoints) {
+            $oSeries->getDataPointFill(0)->setFillType(Fill::FILL_SOLID);
+        }
+
         /** @var AbstractType $oChart */
         $oChart = new $chartType();
         $oChart->addSeries($oSeries);
@@ -2336,8 +2344,14 @@ class PptChartsTest extends PhpPresentationTestCase
 
         $file = 'ppt/charts/' . $oShape->getIndexedFilename();
 
+        $expected = ['c:idx', 'c:order', 'c:tx', 'c:spPr'];
+        if ($writesDataPoints) {
+            $expected[] = 'c:dPt';
+        }
+        $expected = array_merge($expected, ['c:dLbls', 'c:cat', 'c:val']);
+
         self::assertSame(
-            ['c:idx', 'c:order', 'c:tx', 'c:spPr', 'c:dLbls', 'c:cat', 'c:val'],
+            $expected,
             $this->getChildElementNames($file, '/c:chartSpace/c:chart/c:plotArea/' . $chartElementName . '/c:ser')
         );
         $this->assertIsSchemaECMA376Valid();
