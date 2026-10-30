@@ -786,6 +786,38 @@ class PptCharts extends AbstractDecoratorWriter
                 $objWriter->endElement();
             }
 
+            // Fills & outlines for points?
+            // The schema names the data points before the data labels of a series.
+            $dataPointFills = $series->getDataPointFills();
+            $dataPointOutlines = $series->getDataPointOutlines();
+            foreach ($series->getDataPointIndexes() as $key) {
+                $fill = $dataPointFills[$key] ?? null;
+                $outline = $dataPointOutlines[$key] ?? null;
+                $hasFill = $fill && Fill::FILL_NONE != $fill->getFillType();
+
+                // c:dPt
+                $objWriter->startElement('c:dPt');
+
+                // c:idx
+                $this->writeElementWithValAttribute($objWriter, 'c:idx', (string) $key);
+
+                if ($hasFill || $outline) {
+                    // c:spPr
+                    $objWriter->startElement('c:spPr');
+                    // Write fill
+                    if ($hasFill) {
+                        $this->writeFill($objWriter, $fill);
+                    }
+                    // Write outline
+                    $this->writeOutline($objWriter, $outline);
+                    // ## c:spPr
+                    $objWriter->endElement();
+                }
+
+                // ## c:dPt
+                $objWriter->endElement();
+            }
+
             // c:ser > c:dLbls
             // @link : https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.charts.areachartseries.aspx
             // a data label block nothing shows is a block PowerPoint has to read and ignore
@@ -1868,6 +1900,39 @@ class PptCharts extends AbstractDecoratorWriter
             // Marker
             $this->writeSeriesMarker($objWriter, $series->getMarker());
 
+            // Fills & outlines for points?
+            // The schema names the data points after the marker of a series and before its
+            // data labels.
+            $dataPointFills = $series->getDataPointFills();
+            $dataPointOutlines = $series->getDataPointOutlines();
+            foreach ($series->getDataPointIndexes() as $key) {
+                $fill = $dataPointFills[$key] ?? null;
+                $outline = $dataPointOutlines[$key] ?? null;
+                $hasFill = $fill && Fill::FILL_NONE != $fill->getFillType();
+
+                // c:dPt
+                $objWriter->startElement('c:dPt');
+
+                // c:idx
+                $this->writeElementWithValAttribute($objWriter, 'c:idx', (string) $key);
+
+                if ($hasFill || $outline) {
+                    // c:spPr
+                    $objWriter->startElement('c:spPr');
+                    // Write fill
+                    if ($hasFill) {
+                        $this->writeFill($objWriter, $fill);
+                    }
+                    // Write outline
+                    $this->writeOutline($objWriter, $outline);
+                    // ## c:spPr
+                    $objWriter->endElement();
+                }
+
+                // ## c:dPt
+                $objWriter->endElement();
+            }
+
             // a data label block nothing shows is a block PowerPoint has to read and ignore
             if ($this->hasDataLabel($series)) {
                 // c:dLbls
@@ -2058,6 +2123,39 @@ class PptCharts extends AbstractDecoratorWriter
             // Marker
             $this->writeSeriesMarker($objWriter, $series->getMarker());
 
+            // Fills & outlines for points?
+            // The schema names the data points after the marker of a series and before its
+            // data labels.
+            $dataPointFills = $series->getDataPointFills();
+            $dataPointOutlines = $series->getDataPointOutlines();
+            foreach ($series->getDataPointIndexes() as $key) {
+                $fill = $dataPointFills[$key] ?? null;
+                $outline = $dataPointOutlines[$key] ?? null;
+                $hasFill = $fill && Fill::FILL_NONE != $fill->getFillType();
+
+                // c:dPt
+                $objWriter->startElement('c:dPt');
+
+                // c:idx
+                $this->writeElementWithValAttribute($objWriter, 'c:idx', (string) $key);
+
+                if ($hasFill || $outline) {
+                    // c:spPr
+                    $objWriter->startElement('c:spPr');
+                    // Write fill
+                    if ($hasFill) {
+                        $this->writeFill($objWriter, $fill);
+                    }
+                    // Write outline
+                    $this->writeOutline($objWriter, $outline);
+                    // ## c:spPr
+                    $objWriter->endElement();
+                }
+
+                // ## c:dPt
+                $objWriter->endElement();
+            }
+
             // a data label block nothing shows is a block PowerPoint has to read and ignore
             if ($this->hasDataLabel($series)) {
                 // c:dLbls
@@ -2234,6 +2332,39 @@ class PptCharts extends AbstractDecoratorWriter
 
             // Marker
             $this->writeSeriesMarker($objWriter, $series->getMarker());
+
+            // Fills & outlines for points?
+            // The schema names the data points after the marker of a series and before its
+            // data labels.
+            $dataPointFills = $series->getDataPointFills();
+            $dataPointOutlines = $series->getDataPointOutlines();
+            foreach ($series->getDataPointIndexes() as $key) {
+                $fill = $dataPointFills[$key] ?? null;
+                $outline = $dataPointOutlines[$key] ?? null;
+                $hasFill = $fill && Fill::FILL_NONE != $fill->getFillType();
+
+                // c:dPt
+                $objWriter->startElement('c:dPt');
+
+                // c:idx
+                $this->writeElementWithValAttribute($objWriter, 'c:idx', (string) $key);
+
+                if ($hasFill || $outline) {
+                    // c:spPr
+                    $objWriter->startElement('c:spPr');
+                    // Write fill
+                    if ($hasFill) {
+                        $this->writeFill($objWriter, $fill);
+                    }
+                    // Write outline
+                    $this->writeOutline($objWriter, $outline);
+                    // ## c:spPr
+                    $objWriter->endElement();
+                }
+
+                // ## c:dPt
+                $objWriter->endElement();
+            }
 
             // a data label block nothing shows is a block PowerPoint has to read and ignore
             if ($this->hasDataLabel($series)) {
