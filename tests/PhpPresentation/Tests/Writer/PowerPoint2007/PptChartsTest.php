@@ -2324,7 +2324,7 @@ class PptChartsTest extends PhpPresentationTestCase
     public function testSeriesShapePropertiesFollowTheTitle(string $chartType, string $chartElementName): void
     {
         $oSeries = new Series('Downloads', $this->seriesData);
-        // A series that names no fill of its own writes no shape properties at all.
+        // A fill of its own, so that the series writes shape properties at all.
         $oSeries->getFill()->setFillType(Fill::FILL_SOLID)->setStartColor(new Color(Color::COLOR_BLUE));
 
         // A data point of its own, so that the shape properties are pinned against
