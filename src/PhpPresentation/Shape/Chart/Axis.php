@@ -352,8 +352,6 @@ class Axis implements ComparableInterface
     }
 
     /**
-     * The distance between the ticks of the axis.
-     *
      * A major unit is the distance between two ticks of a value axis: a category axis has
      * no numeric scale for a unit to be a distance between, and the PowerPoint2007 Writer
      * writes no major unit for it. Use {@see self::setTickLabelSkip()} to space out the
@@ -378,10 +376,8 @@ class Axis implements ComparableInterface
      * The number of tick labels to skip between the labels that are drawn.
      *
      * The count is a number of labels, and the schema holds it as an unsigned short: a
-     * count of zero is not one, and a count above what a short holds is not one
-     * either. A skip of zero or less is kept as no skip at all, and nothing is
-     * written for it; a skip above the largest the schema holds is kept as that
-     * largest.
+     * skip of zero or less is not a count at all and is kept as no skip, and nothing is
+     * written for it; a skip above the largest the schema holds is kept as that largest.
      */
     public function setTickLabelSkip(?int $skip = null): self
     {
