@@ -3499,7 +3499,7 @@ index ddf750dfc..3bf1956dc 100644
      {
          if (substr($expr, -1) == '%') {
 diff --git a/src/PhpPresentation/Reader/PowerPoint2007.php b/src/PhpPresentation/Reader/PowerPoint2007.php
-index d93a19168..85cb8fcb2 100644
+index d93a19168..e05ae9323 100644
 --- a/src/PhpPresentation/Reader/PowerPoint2007.php
 +++ b/src/PhpPresentation/Reader/PowerPoint2007.php
 @@ -33,14 +33,21 @@ use PhpOffice\PhpPresentation\Exception\FileNotFoundException;
@@ -3524,7 +3524,15 @@ index d93a19168..85cb8fcb2 100644
  use PhpOffice\PhpPresentation\Slide;
  use PhpOffice\PhpPresentation\Slide\AbstractSlide;
  use PhpOffice\PhpPresentation\Slide\Note;
-@@ -63,6 +70,51 @@ use ZipArchive;
+@@ -52,6 +59,7 @@ use PhpOffice\PhpPresentation\Style\Bullet;
+ use PhpOffice\PhpPresentation\Style\Color;
+ use PhpOffice\PhpPresentation\Style\Fill;
+ use PhpOffice\PhpPresentation\Style\Font;
++use PhpOffice\PhpPresentation\Style\GradientStop;
+ use PhpOffice\PhpPresentation\Style\Outline;
+ use PhpOffice\PhpPresentation\Style\SchemeColor;
+ use PhpOffice\PhpPresentation\Style\Shadow;
+@@ -63,6 +71,51 @@ use ZipArchive;
   */
  class PowerPoint2007 implements ReaderInterface
  {
@@ -3576,7 +3584,7 @@ index d93a19168..85cb8fcb2 100644
      /**
       * Output Object.
       *
-@@ -82,6 +134,20 @@ class PowerPoint2007 implements ReaderInterface
+@@ -82,6 +135,20 @@ class PowerPoint2007 implements ReaderInterface
       */
      protected $arrayRels = [];
  
@@ -3597,7 +3605,7 @@ index d93a19168..85cb8fcb2 100644
      /**
       * @var SlideLayout[]
       */
-@@ -102,6 +168,21 @@ class PowerPoint2007 implements ReaderInterface
+@@ -102,6 +169,21 @@ class PowerPoint2007 implements ReaderInterface
       */
      protected $loadImages = true;
  
@@ -3619,7 +3627,7 @@ index d93a19168..85cb8fcb2 100644
      /**
       * Can the current \PhpOffice\PhpPresentation\Reader\ReaderInterface read the file?
       */
-@@ -120,17 +201,17 @@ class PowerPoint2007 implements ReaderInterface
+@@ -120,17 +202,17 @@ class PowerPoint2007 implements ReaderInterface
              throw new FileNotFoundException($pFilename);
          }
  
@@ -3645,7 +3653,7 @@ index d93a19168..85cb8fcb2 100644
      }
  
      /**
-@@ -148,6 +229,169 @@ class PowerPoint2007 implements ReaderInterface
+@@ -148,6 +230,169 @@ class PowerPoint2007 implements ReaderInterface
          return $this->loadFile($pFilename);
      }
  
@@ -3815,7 +3823,7 @@ index d93a19168..85cb8fcb2 100644
      /**
       * Load PhpPresentation Serialized file.
       */
-@@ -158,37 +402,51 @@ class PowerPoint2007 implements ReaderInterface
+@@ -158,37 +403,51 @@ class PowerPoint2007 implements ReaderInterface
          $this->oPhpPresentation->setAllMasterSlides([]);
          $this->filename = $pFilename;
  
@@ -3880,7 +3888,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          return $this->oPhpPresentation;
-@@ -208,7 +466,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -208,7 +467,8 @@ class PowerPoint2007 implements ReaderInterface
                  }
                  $type = $oElement->getAttribute('type');
                  $oLayout = $this->oPhpPresentation->getLayout();
@@ -3890,7 +3898,7 @@ index d93a19168..85cb8fcb2 100644
                      $oLayout->setCX((float) $oElement->getAttribute('cx'));
                      $oLayout->setCY((float) $oElement->getAttribute('cy'));
                  } else {
-@@ -235,22 +494,29 @@ class PowerPoint2007 implements ReaderInterface
+@@ -235,22 +495,29 @@ class PowerPoint2007 implements ReaderInterface
                  '/cp:coreProperties/dc:title' => 'setTitle',
                  '/cp:coreProperties/dc:description' => 'setDescription',
                  '/cp:coreProperties/dc:subject' => 'setSubject',
@@ -3926,7 +3934,7 @@ index d93a19168..85cb8fcb2 100644
                      }
                  }
              }
-@@ -270,7 +536,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -270,7 +537,7 @@ class PowerPoint2007 implements ReaderInterface
              $path = $oElement->getAttribute('Target');
              $this->oPhpPresentation
                  ->getPresentationProperties()
@@ -3935,7 +3943,7 @@ index d93a19168..85cb8fcb2 100644
          }
      }
  
-@@ -284,7 +550,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -284,7 +551,7 @@ class PowerPoint2007 implements ReaderInterface
          // @phpstan-ignore-next-line
          if ($xmlReader->getDomFromString($sPart)) {
              foreach ($xmlReader->getElements('/Properties/property[@fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"]') as $element) {
@@ -3944,7 +3952,7 @@ index d93a19168..85cb8fcb2 100644
                      continue;
                  }
                  $propertyName = $element->getAttribute('name');
-@@ -383,8 +649,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -383,8 +650,7 @@ class PowerPoint2007 implements ReaderInterface
          $xmlReader = new XMLReader();
          // @phpstan-ignore-next-line
          if ($xmlReader->getDomFromString($sPart)) {
@@ -3954,7 +3962,7 @@ index d93a19168..85cb8fcb2 100644
              // Load the Masterslides
              $this->loadMasterSlides($xmlReader, $fileRels);
              // Continue with loading the slides
-@@ -393,16 +658,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -393,16 +659,16 @@ class PowerPoint2007 implements ReaderInterface
                      continue;
                  }
                  $rId = $oElement->getAttribute('r:id');
@@ -3977,7 +3985,7 @@ index d93a19168..85cb8fcb2 100644
                              }
                          }
                      }
-@@ -424,12 +689,12 @@ class PowerPoint2007 implements ReaderInterface
+@@ -424,12 +690,12 @@ class PowerPoint2007 implements ReaderInterface
              $rId = $oElement->getAttribute('r:id');
              // Get the path to the masterslide from the array with _rels files
              $pathMasterSlide = isset($this->arrayRels[$fileRels][$rId]) ?
@@ -3994,7 +4002,7 @@ index d93a19168..85cb8fcb2 100644
                  }
              }
          }
-@@ -438,7 +703,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -438,7 +704,7 @@ class PowerPoint2007 implements ReaderInterface
      /**
       * Extract data from slide.
       */
@@ -4003,7 +4011,7 @@ index d93a19168..85cb8fcb2 100644
      {
          $xmlReader = new XMLReader();
          // @phpstan-ignore-next-line
-@@ -447,7 +712,19 @@ class PowerPoint2007 implements ReaderInterface
+@@ -447,7 +713,19 @@ class PowerPoint2007 implements ReaderInterface
              // Core
              $oSlide = $this->oPhpPresentation->createSlide();
              $this->oPhpPresentation->setActiveSlideIndex($this->oPhpPresentation->getSlideCount() - 1);
@@ -4024,7 +4032,7 @@ index d93a19168..85cb8fcb2 100644
  
              // Background
              $oElement = $xmlReader->getElement('/p:sld/p:cSld/p:bg/p:bgPr');
-@@ -478,18 +755,11 @@ class PowerPoint2007 implements ReaderInterface
+@@ -478,18 +756,11 @@ class PowerPoint2007 implements ReaderInterface
                  }
                  $oElementImage = $xmlReader->getElement('a:blipFill/a:blip', $oElement);
                  if ($oElementImage instanceof DOMElement) {
@@ -4046,10 +4054,18 @@ index d93a19168..85cb8fcb2 100644
  
                          $tmpBkgImg = tempnam(sys_get_temp_dir(), 'PhpPresentationReaderPpt2007Bkg');
                          file_put_contents($tmpBkgImg, $contentImg);
-@@ -505,17 +775,28 @@ class PowerPoint2007 implements ReaderInterface
+@@ -503,6 +774,23 @@ class PowerPoint2007 implements ReaderInterface
+                         $oSlide->setBackground($oBackground);
+                     }
                  }
-             }
- 
++                $oBackgroundGradient = $this->loadBackgroundGradient($xmlReader, $oElement);
++                if ($oBackgroundGradient instanceof Slide\Background\Gradient) {
++                    // Slide Background
++                    $oSlide = $this->oPhpPresentation->getActiveSlide();
++                    $oSlide->setBackground($oBackgroundGradient);
++                }
++            }
++
 +            // The fonts of the theme of the master the layout of the slide belongs to
 +            $this->themeFonts = [];
 +            foreach ($this->arrayRels[$oSlide->getRelsIndex()] as $valueRel) {
@@ -4059,11 +4075,10 @@ index d93a19168..85cb8fcb2 100644
 +
 +                    break;
 +                }
-+            }
-+
+             }
+ 
              // Shapes
-             $arrayElements = $xmlReader->getElements('/p:sld/p:cSld/p:spTree/*');
-             $this->loadSlideShapes($xmlReader, $oSlide, $arrayElements, $xmlReader);
+@@ -511,11 +799,11 @@ class PowerPoint2007 implements ReaderInterface
  
              // Layout
              $oSlide = $this->oPhpPresentation->getActiveSlide();
@@ -4080,7 +4095,7 @@ index d93a19168..85cb8fcb2 100644
                      }
  
                      break;
-@@ -524,7 +805,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -524,7 +812,7 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4089,7 +4104,7 @@ index d93a19168..85cb8fcb2 100644
      {
          $xmlReader = new XMLReader();
          // @phpstan-ignore-next-line
-@@ -532,7 +813,22 @@ class PowerPoint2007 implements ReaderInterface
+@@ -532,7 +820,22 @@ class PowerPoint2007 implements ReaderInterface
              // Core
              $oSlideMaster = $this->oPhpPresentation->createMasterSlide();
              $oSlideMaster->setTextStyles(new TextStyle(false));
@@ -4113,7 +4128,7 @@ index d93a19168..85cb8fcb2 100644
  
              // Background
              $oElement = $xmlReader->getElement('/p:sldMaster/p:cSld/p:bg');
-@@ -630,18 +926,6 @@ class PowerPoint2007 implements ReaderInterface
+@@ -630,18 +933,6 @@ class PowerPoint2007 implements ReaderInterface
                  }
              }
  
@@ -4132,7 +4147,7 @@ index d93a19168..85cb8fcb2 100644
              // Load the Layoutslide
              foreach ($xmlReader->getElements('/p:sldMaster/p:sldLayoutIdLst/p:sldLayoutId') as $oElement) {
                  if (!($oElement instanceof DOMElement)) {
-@@ -650,13 +934,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -650,13 +941,13 @@ class PowerPoint2007 implements ReaderInterface
                  $rId = $oElement->getAttribute('r:id');
                  // Get the path to the masterslide from the array with _rels files
                  $pathLayoutSlide = isset($this->arrayRels[$oSlideMaster->getRelsIndex()][$rId]) ?
@@ -4150,7 +4165,7 @@ index d93a19168..85cb8fcb2 100644
                          );
                      }
                  }
-@@ -664,14 +948,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -664,14 +955,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4167,7 +4182,7 @@ index d93a19168..85cb8fcb2 100644
  
              // Name
              $oElement = $xmlReader->getElement('/p:sldLayout/p:cSld');
-@@ -698,7 +982,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -698,7 +989,7 @@ class PowerPoint2007 implements ReaderInterface
              // Shapes
              $oElements = $xmlReader->getElements('/p:sldLayout/p:cSld/p:spTree/*');
              $this->loadSlideShapes($xmlReader, $oSlideLayout, $oElements, $xmlReader);
@@ -4176,7 +4191,7 @@ index d93a19168..85cb8fcb2 100644
  
              return $oSlideLayout;
          }
-@@ -728,7 +1012,59 @@ class PowerPoint2007 implements ReaderInterface
+@@ -728,7 +1019,59 @@ class PowerPoint2007 implements ReaderInterface
                      $oSlideMaster->addSchemeColor($oSchemeColor);
                  }
              }
@@ -4202,7 +4217,7 @@ index d93a19168..85cb8fcb2 100644
 +                    return $this->readThemeFonts($xmlReader);
 +                }
 +            }
-+        }
+         }
 +
 +        return [];
 +    }
@@ -4221,7 +4236,7 @@ index d93a19168..85cb8fcb2 100644
 +                $oElement = $xmlReader->getElement('/a:theme/a:themeElements/a:fontScheme/' . $fontElement . '/' . $scriptElement);
 +                $fonts['+' . $kind . '-' . $script] = $oElement instanceof DOMElement ? $oElement->getAttribute('typeface') : '';
 +            }
-         }
++        }
 +
 +        return $fonts;
 +    }
@@ -4236,7 +4251,7 @@ index d93a19168..85cb8fcb2 100644
      }
  
      protected function loadSlideBackground(XMLReader $xmlReader, DOMElement $oElement, AbstractSlide $oSlide): void
-@@ -765,15 +1101,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -765,15 +1108,8 @@ class PowerPoint2007 implements ReaderInterface
              $relImg = $this->arrayRels[$oSlide->getRelsIndex()][$oElementImage->getAttribute('r:embed')];
              if (is_array($relImg)) {
                  // File
@@ -4254,8 +4269,46 @@ index d93a19168..85cb8fcb2 100644
  
                  $tmpBkgImg = tempnam(sys_get_temp_dir(), 'PhpPresentationReaderPpt2007Bkg');
                  file_put_contents($tmpBkgImg, $contentImg);
-@@ -786,75 +1115,222 @@ class PowerPoint2007 implements ReaderInterface
+@@ -784,77 +1120,260 @@ class PowerPoint2007 implements ReaderInterface
+                 $oSlide->setBackground($oBackground);
+             }
          }
++
++        // Background gradient
++        $oElementBackground = $xmlReader->getElement('p:bgPr', $oElement);
++        if ($oElementBackground instanceof DOMElement) {
++            $oBackgroundGradient = $this->loadBackgroundGradient($xmlReader, $oElementBackground);
++            if ($oBackgroundGradient instanceof Slide\Background\Gradient) {
++                // Slide Background
++                $oSlide->setBackground($oBackgroundGradient);
++            }
++        }
++    }
++
++    /**
++     * Read the gradient a background is painted with.
++     *
++     * The gradient is a fill, and it is read by the reader that reads the fills, so that a
++     * background and a shape painted with the same gradient are the same thing on the way
++     * back in as they were on the way out.
++     *
++     * @param DOMElement $oElement the `p:bgPr` element of the background
++     */
++    protected function loadBackgroundGradient(XMLReader $xmlReader, DOMElement $oElement): ?Slide\Background\Gradient
++    {
++        if (!($xmlReader->getElement('a:gradFill', $oElement) instanceof DOMElement)) {
++            return null;
++        }
++
++        $oFill = $this->loadStyleFill($xmlReader, $oElement);
++        if (!($oFill instanceof Fill)) {
++            return null;
++        }
++
++        $oBackground = new Slide\Background\Gradient();
++        $oBackground->setFill($oFill);
++
++        return $oBackground;
      }
  
 -    protected function loadSlideNote(string $baseFile, Slide $oSlide): void
@@ -4343,7 +4396,13 @@ index d93a19168..85cb8fcb2 100644
 +            $oShape->setDecorative($this->loadShapeDecorative($document, $oElement));
 +            $oShape->setHyperlink($this->loadShapeHyperlink($document, $oElement));
 +        }
-+
+ 
+-            // Hyperlink
+-            $oElementHlinkClick = $document->getElement('a:hlinkClick', $oElement);
+-            if (is_object($oElementHlinkClick)) {
+-                $oShape->setHyperlink(
+-                    $this->loadHyperlink($document, $oElementHlinkClick, $oShape->getHyperlink())
+-                );
 +        $oElement = $document->getElement('p:grpSpPr/a:xfrm', $node);
 +        if ($oElement instanceof DOMElement && $oElement->hasAttribute('rot')) {
 +            $oShape->setRotation((int) CommonDrawing::angleToDegrees((int) $oElement->getAttribute('rot')));
@@ -4380,13 +4439,7 @@ index d93a19168..85cb8fcb2 100644
 +        if ($off === $chOff && 1.0 === $scaleX && 1.0 === $scaleY) {
 +            return;
 +        }
- 
--            // Hyperlink
--            $oElementHlinkClick = $document->getElement('a:hlinkClick', $oElement);
--            if (is_object($oElementHlinkClick)) {
--                $oShape->setHyperlink(
--                    $this->loadHyperlink($document, $oElementHlinkClick, $oShape->getHyperlink())
--                );
++
 +        $this->applyGroupTransform($oShape, $off, $chOff, $scaleX, $scaleY);
 +    }
 +
@@ -4438,13 +4491,13 @@ index d93a19168..85cb8fcb2 100644
              }
          }
 +    }
-+
+ 
 +    protected function loadShapeDrawing(XMLReader $document, DOMElement $node, AbstractSlide $oSlide, ?ShapeContainerInterface $oContainer = null): void
 +    {
 +        $oContainer = $oContainer ?? $oSlide;
 +        // Variables
 +        $fileRels = $oSlide->getRelsIndex();
- 
++
 +        $imageFile = '';
          $oElement = $document->getElement('p:blipFill/a:blip', $node);
          if ($oElement instanceof DOMElement) {
@@ -4520,7 +4573,7 @@ index d93a19168..85cb8fcb2 100644
              }
          }
  
-@@ -862,6 +1338,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -862,6 +1381,13 @@ class PowerPoint2007 implements ReaderInterface
          if ($oElement instanceof DOMElement) {
              $oFill = $this->loadStyleFill($document, $oElement);
              $oShape->setFill($oFill);
@@ -4534,7 +4587,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          $oElement = $document->getElement('p:spPr/a:xfrm', $node);
-@@ -897,7 +1380,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -897,7 +1423,7 @@ class PowerPoint2007 implements ReaderInterface
                  $this->loadShadow($document, $oElement)
              );
          }
@@ -4543,7 +4596,7 @@ index d93a19168..85cb8fcb2 100644
      }
  
      /**
-@@ -905,44 +1388,47 @@ class PowerPoint2007 implements ReaderInterface
+@@ -905,44 +1431,47 @@ class PowerPoint2007 implements ReaderInterface
       */
      protected function loadShadow(XMLReader $document, DOMElement $node): ?Shadow
      {
@@ -4625,7 +4678,7 @@ index d93a19168..85cb8fcb2 100644
              }
          }
  
-@@ -950,21 +1436,126 @@ class PowerPoint2007 implements ReaderInterface
+@@ -950,21 +1479,126 @@ class PowerPoint2007 implements ReaderInterface
      }
  
      /**
@@ -4652,8 +4705,8 @@ index d93a19168..85cb8fcb2 100644
 +        if ($oElement instanceof DOMElement) {
 +            $fromX = (int) CommonDrawing::emuToPixels((int) $oElement->getAttribute('x'));
 +            $fromY = (int) CommonDrawing::emuToPixels((int) $oElement->getAttribute('y'));
-+        }
-+
+         }
+ 
 +        $oElement = $document->getElement('p:spPr/a:xfrm/a:ext', $node);
 +        if ($oElement instanceof DOMElement) {
 +            $width = (int) CommonDrawing::emuToPixels((int) $oElement->getAttribute('cx'));
@@ -4739,10 +4792,10 @@ index d93a19168..85cb8fcb2 100644
 +                $text .= 'a:br' === $oElement->nodeName ? "\n" : $oElement->textContent;
 +            }
 +            $paragraphs[] = $text;
-         }
++        }
 +        $oShape->setText(implode("\n", $paragraphs));
 +    }
- 
++
 +    /**
 +     * The name, the alternative text, the link and the place of a `p:sp`.
 +     *
@@ -4759,7 +4812,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          $oElement = $document->getElement('p:spPr/a:xfrm', $node);
-@@ -991,6 +1582,23 @@ class PowerPoint2007 implements ReaderInterface
+@@ -991,6 +1625,23 @@ class PowerPoint2007 implements ReaderInterface
                  $oShape->setHeight((int) CommonDrawing::emuToPixels((int) $oElement->getAttribute('cy')));
              }
          }
@@ -4783,7 +4836,7 @@ index d93a19168..85cb8fcb2 100644
  
          $oElement = $document->getElement('p:nvSpPr/p:nvPr/p:ph', $node);
          if ($oElement instanceof DOMElement) {
-@@ -1011,21 +1619,30 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1011,21 +1662,30 @@ class PowerPoint2007 implements ReaderInterface
          // FBU-20210202+ Read body definitions
          $bodyPr = $document->getElement('p:txBody/a:bodyPr', $node);
          if ($bodyPr instanceof DOMElement) {
@@ -4818,7 +4871,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          $arrayElements = $document->getElements('p:txBody/a:p', $node);
-@@ -1034,12 +1651,20 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1034,12 +1694,20 @@ class PowerPoint2007 implements ReaderInterface
                  $this->loadParagraph($document, $oElement, $oShape);
              }
          }
@@ -4839,7 +4892,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          if (count($oShape->getParagraphs()) > 0) {
-@@ -1047,13 +1672,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1047,13 +1715,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4857,7 +4910,7 @@ index d93a19168..85cb8fcb2 100644
          if ($oElement instanceof DOMElement) {
              if ($oElement->hasAttribute('name')) {
                  $oShape->setName($oElement->getAttribute('name'));
-@@ -1061,6 +1687,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1061,6 +1730,8 @@ class PowerPoint2007 implements ReaderInterface
              if ($oElement->hasAttribute('descr')) {
                  $oShape->setDescription($oElement->getAttribute('descr'));
              }
@@ -4866,7 +4919,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          $oElement = $document->getElement('p:xfrm/a:off', $node);
-@@ -1083,6 +1711,11 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1083,6 +1754,11 @@ class PowerPoint2007 implements ReaderInterface
              }
          }
  
@@ -4878,7 +4931,7 @@ index d93a19168..85cb8fcb2 100644
          $arrayElements = $document->getElements('a:graphic/a:graphicData/a:tbl/a:tblGrid/a:gridCol', $node);
          $oShape->setNumColumns($arrayElements->length);
          $oShape->createRow();
-@@ -1124,6 +1757,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1124,6 +1800,7 @@ class PowerPoint2007 implements ReaderInterface
                          $this->loadParagraph($document, $oElementPara, $oCell);
                      }
                  }
@@ -4886,7 +4939,7 @@ index d93a19168..85cb8fcb2 100644
  
                  $oElementTcPr = $document->getElement('a:tcPr', $oElementCell);
                  if ($oElementTcPr instanceof DOMElement) {
-@@ -1185,13 +1819,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1185,13 +1862,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4903,7 +4956,7 @@ index d93a19168..85cb8fcb2 100644
          if ($oElement instanceof DOMElement) {
              if ($oElement->hasAttribute('name')) {
                  $oShape->setName($oElement->getAttribute('name'));
-@@ -1199,6 +1834,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1199,6 +1877,8 @@ class PowerPoint2007 implements ReaderInterface
              if ($oElement->hasAttribute('descr')) {
                  $oShape->setDescription($oElement->getAttribute('descr'));
              }
@@ -4912,7 +4965,7 @@ index d93a19168..85cb8fcb2 100644
          }
  
          $oElement = $document->getElement('p:xfrm/a:off', $node);
-@@ -1223,110 +1860,31 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1223,110 +1903,31 @@ class PowerPoint2007 implements ReaderInterface
  
          $chartElement = $document->getElement('a:graphic/a:graphicData/c:chart', $node);
          if ($chartElement->hasAttribute('r:id') && isset($this->arrayRels[$this->fileRels][$chartElement->getAttribute('r:id')]['Target'])) {
@@ -5041,7 +5094,7 @@ index d93a19168..85cb8fcb2 100644
                          $oShape->getPlotArea()->setType($shapeType);
                      }
  
-@@ -1345,7 +1903,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1345,7 +1946,7 @@ class PowerPoint2007 implements ReaderInterface
                              $oShape->getPlotArea()->getAxisX()->setMajorTickMark($elementMajorTickMark->getAttribute('val'));
                          }
                          if ($elementMinorTickMark = $xmlReader->getElement('c:minorTickMark', $oElement)) {
@@ -5050,7 +5103,7 @@ index d93a19168..85cb8fcb2 100644
                          }
                          if ($elementTickLabelPosition = $xmlReader->getElement('c:tickLblPos', $oElement)) {
                              $oShape->getPlotArea()->getAxisX()->setTickLabelPosition($elementTickLabelPosition->getAttribute('val'));
-@@ -1360,6 +1918,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1360,6 +1961,8 @@ class PowerPoint2007 implements ReaderInterface
                                  $oShape->getPlotArea()->getAxisX()->setOutline($outline);
                              }
                          }
@@ -5059,7 +5112,7 @@ index d93a19168..85cb8fcb2 100644
                      }
  
                      if ($oElement = $xmlReader->getElement('/c:chartSpace/c:chart/c:plotArea/c:valAx')) {
-@@ -1377,7 +1937,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1377,7 +1980,7 @@ class PowerPoint2007 implements ReaderInterface
                              $oShape->getPlotArea()->getAxisY()->setMajorTickMark($elementMajorTickMark->getAttribute('val'));
                          }
                          if ($elementMinorTickMark = $xmlReader->getElement('c:minorTickMark', $oElement)) {
@@ -5068,7 +5121,7 @@ index d93a19168..85cb8fcb2 100644
                          }
                          if ($elementTickLabelPosition = $xmlReader->getElement('c:tickLblPos', $oElement)) {
                              $oShape->getPlotArea()->getAxisY()->setTickLabelPosition($elementTickLabelPosition->getAttribute('val'));
-@@ -1385,11 +1945,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1385,11 +1988,13 @@ class PowerPoint2007 implements ReaderInterface
                          if ($elementCrosses = $xmlReader->getElement('c:crosses', $oElement)) {
                              $oShape->getPlotArea()->getAxisY()->setCrossesAt($elementCrosses->getAttribute('val'));
                          }
@@ -5083,7 +5136,7 @@ index d93a19168..85cb8fcb2 100644
                      }
  
                      if ($oElement = $xmlReader->getElement('/c:chartSpace/c:chart/c:legend')) {
-@@ -1407,7 +1969,226 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1407,7 +2012,226 @@ class PowerPoint2007 implements ReaderInterface
                      }
                  }
              }
@@ -5311,7 +5364,7 @@ index d93a19168..85cb8fcb2 100644
          }
      }
  
-@@ -1467,8 +2248,9 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1467,8 +2291,9 @@ class PowerPoint2007 implements ReaderInterface
  
              $oElementBuFont = $document->getElement('a:buFont', $oSubElement);
              if ($oElementBuFont instanceof DOMElement) {
@@ -5323,7 +5376,7 @@ index d93a19168..85cb8fcb2 100644
                  }
              }
              $oElementBuChar = $document->getElement('a:buChar', $oSubElement);
-@@ -1484,9 +2266,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1484,9 +2309,8 @@ class PowerPoint2007 implements ReaderInterface
                  if ($oElementBuAutoNum->hasAttribute('type')) {
                      $oParagraph->getBulletStyle()->setBulletNumericStyle($oElementBuAutoNum->getAttribute('type'));
                  }
@@ -5335,7 +5388,7 @@ index d93a19168..85cb8fcb2 100644
              }
              $oElementBuClr = $document->getElement('a:buClr', $oSubElement);
              if ($oElementBuClr instanceof DOMElement) {
-@@ -1501,7 +2282,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1501,7 +2325,7 @@ class PowerPoint2007 implements ReaderInterface
                  $oParagraph->getBulletStyle()->setBulletColor($oColor);
              }
          }
@@ -5344,7 +5397,7 @@ index d93a19168..85cb8fcb2 100644
          foreach ($arraySubElements as $oSubElement) {
              if (!($oSubElement instanceof DOMElement)) {
                  continue;
-@@ -1509,11 +2290,18 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1509,11 +2333,18 @@ class PowerPoint2007 implements ReaderInterface
              if ('a:br' == $oSubElement->tagName) {
                  $oParagraph->createBreak();
              }
@@ -5366,7 +5419,7 @@ index d93a19168..85cb8fcb2 100644
                      if ($oElementrPr->hasAttribute('b')) {
                          $att = $oElementrPr->getAttribute('b');
                          $oText->getFont()->setBold('true' == $att || '1' == $att ? true : false);
-@@ -1542,14 +2330,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1542,14 +2373,14 @@ class PowerPoint2007 implements ReaderInterface
                      }
                      // Color
                      $oElementSrgbClr = $document->getElement('a:solidFill/a:srgbClr', $oElementrPr);
@@ -5383,7 +5436,7 @@ index d93a19168..85cb8fcb2 100644
                          $oText->setHyperlink(
                              $this->loadHyperlink($document, $oElementHlinkClick, $oText->getHyperlink())
                          );
-@@ -1558,28 +2346,30 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1558,28 +2389,30 @@ class PowerPoint2007 implements ReaderInterface
                      // Font
                      $oElementFontFormat = null;
                      $oElementFontFormatComplexScript = $document->getElement('a:cs', $oElementrPr);
@@ -5421,7 +5474,7 @@ index d93a19168..85cb8fcb2 100644
                          }
                          if ($oElementFont->hasAttribute('panose')) {
                              $oText->getFont()->setPanose($oElementFont->getAttribute('panose'));
-@@ -1588,11 +2378,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1588,11 +2421,16 @@ class PowerPoint2007 implements ReaderInterface
                              $oText->getFont()->setPitchFamily((int) $oElementFont->getAttribute('pitchFamily'));
                          }
                          if ($oElementFont->hasAttribute('charset')) {
@@ -5441,7 +5494,7 @@ index d93a19168..85cb8fcb2 100644
                      $oText->setText($oSubSubElement->nodeValue);
                  }
              }
-@@ -1605,7 +2400,15 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1605,7 +2443,15 @@ class PowerPoint2007 implements ReaderInterface
              $hyperlink->setTooltip($element->getAttribute('tooltip'));
          }
          if ($element->hasAttribute('r:id') && isset($this->arrayRels[$this->fileRels][$element->getAttribute('r:id')]['Target'])) {
@@ -5458,7 +5511,7 @@ index d93a19168..85cb8fcb2 100644
          }
          if ($subElementExt = $xmlReader->getElement('a:extLst/a:ext', $element)) {
              if ($subElementExt->hasAttribute('uri') && $subElementExt->getAttribute('uri') == '{A12FA001-AC4F-418D-AE19-62706E023703}') {
-@@ -1647,13 +2450,49 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1647,13 +2493,49 @@ class PowerPoint2007 implements ReaderInterface
          $oColor->setRGB($oElement->getAttribute('val'));
          $oElementAlpha = $xmlReader->getElement('a:alpha', $oElement);
          if ($oElementAlpha instanceof DOMElement && $oElementAlpha->hasAttribute('val')) {
@@ -5510,10 +5563,59 @@ index d93a19168..85cb8fcb2 100644
      protected function loadStyleFill(XMLReader $xmlReader, DOMElement $oElement): ?Fill
      {
          // Gradient fill
-@@ -1680,6 +2519,29 @@ class PowerPoint2007 implements ReaderInterface
-             return $oFill;
-         }
+@@ -1662,19 +2544,67 @@ class PowerPoint2007 implements ReaderInterface
+             $oFill = new Fill();
+             $oFill->setFillType(Fill::FILL_GRADIENT_LINEAR);
  
+-            $oElementColor = $xmlReader->getElement('a:gsLst/a:gs[@pos="0"]/a:srgbClr', $oElementFill);
+-            if ($oElementColor instanceof DOMElement && $oElementColor->hasAttribute('val')) {
+-                $oFill->setStartColor($this->loadStyleColor($xmlReader, $oElementColor));
++            // Every stop of the gradient is read, and not only the two that sit at either end
++            // of it: a gradient of three stops came back as two, with the one in the middle
++            // lost, and a gradient of three stops is what PowerPoint writes for a gradient
++            // that has three colours in it.
++            $stops = [];
++            foreach ($xmlReader->getElements('a:gsLst/a:gs', $oElementFill) as $oElementStop) {
++                if (!($oElementStop instanceof DOMElement)) {
++                    continue;
++                }
++                $oElementColor = $xmlReader->getElement('a:srgbClr', $oElementStop);
++                if (!($oElementColor instanceof DOMElement) || !$oElementColor->hasAttribute('val')) {
++                    continue;
++                }
++                $stops[] = new GradientStop(
++                    $oElementStop->hasAttribute('pos') ? (int) $oElementStop->getAttribute('pos') : GradientStop::POSITION_START,
++                    $this->loadStyleColor($xmlReader, $oElementColor)
++                );
++            }
++            if (count($stops) > 0) {
++                $oFill->setGradientStops($stops);
++                // The colours of the first and the last stop are the start and the end colour
++                // of the fill, which is what a fill of two stops is.
++                $oFill->setStartColor($stops[0]->getColor());
++                $oFill->setEndColor($stops[count($stops) - 1]->getColor());
++            }
++
++            // A gradient that runs from the middle of the shape outwards is a path, and the
++            // format says so with `a:path` where a gradient that runs from one side to the
++            // other says `a:lin`. It was read as a line whatever it was, so a path came back
++            // as a line.
++            $oElementPath = $xmlReader->getElement('a:path', $oElementFill);
++            if ($oElementPath instanceof DOMElement) {
++                $oFill->setFillType(Fill::FILL_GRADIENT_PATH);
++            } else {
++                $oRotation = $xmlReader->getElement('a:lin', $oElementFill);
++                if ($oRotation instanceof DOMElement && $oRotation->hasAttribute('ang')) {
++                    $oFill->setRotation(CommonDrawing::angleToDegrees((int) $oRotation->getAttribute('ang')));
++                }
+             }
+ 
+-            $oElementColor = $xmlReader->getElement('a:gsLst/a:gs[@pos="100000"]/a:srgbClr', $oElementFill);
+-            if ($oElementColor instanceof DOMElement && $oElementColor->hasAttribute('val')) {
+-                $oFill->setEndColor($this->loadStyleColor($xmlReader, $oElementColor));
++            return $oFill;
++        }
++
 +        // Pattern fill. `prst` is what names the pattern, and it is optional in the schema, so a
 +        // `a:pattFill` without one names none -- there is no fill type to read it back as, and it
 +        // is written by nothing that knows what it is doing. Read as the absence of a fill, the
@@ -5527,20 +5629,18 @@ index d93a19168..85cb8fcb2 100644
 +            $oElementColor = $xmlReader->getElement('a:fgClr/a:srgbClr', $oElementFill);
 +            if ($oElementColor instanceof DOMElement) {
 +                $oFill->setStartColor($this->loadStyleColor($xmlReader, $oElementColor));
-+            }
-+
+             }
+ 
+-            $oRotation = $xmlReader->getElement('a:lin', $oElementFill);
+-            if ($oRotation instanceof DOMElement && $oRotation->hasAttribute('ang')) {
+-                $oFill->setRotation(CommonDrawing::angleToDegrees((int) $oRotation->getAttribute('ang')));
 +            $oElementColor = $xmlReader->getElement('a:bgClr/a:srgbClr', $oElementFill);
 +            if ($oElementColor instanceof DOMElement) {
 +                $oFill->setEndColor($this->loadStyleColor($xmlReader, $oElementColor));
-+            }
-+
-+            return $oFill;
-+        }
-+
-         // Solid fill
-         $oElementFill = $xmlReader->getElement('a:solidFill', $oElement);
-         if ($oElementFill instanceof DOMElement) {
-@@ -1694,6 +2556,16 @@ class PowerPoint2007 implements ReaderInterface
+             }
+ 
+             return $oFill;
+@@ -1694,6 +2624,16 @@ class PowerPoint2007 implements ReaderInterface
              return $oFill;
          }
  
@@ -5557,7 +5657,7 @@ index d93a19168..85cb8fcb2 100644
          return null;
      }
  
-@@ -1715,9 +2587,101 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1715,9 +2655,101 @@ class PowerPoint2007 implements ReaderInterface
          return null;
      }
  
@@ -5660,7 +5760,7 @@ index d93a19168..85cb8fcb2 100644
          if (false !== $sPart) {
              $xmlReader = new XMLReader();
              // @phpstan-ignore-next-line
-@@ -1738,11 +2702,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1738,11 +2770,16 @@ class PowerPoint2007 implements ReaderInterface
      /**
       * @param AbstractSlide|Note $oSlide
       * @param DOMNodeList<DOMNode> $oElements
@@ -5678,7 +5778,7 @@ index d93a19168..85cb8fcb2 100644
          foreach ($oElements as $oNode) {
              if (!($oNode instanceof DOMElement)) {
                  continue;
-@@ -1751,22 +2720,34 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1751,22 +2788,34 @@ class PowerPoint2007 implements ReaderInterface
                  case 'p:graphicFrame':
                      if ($oSlide instanceof AbstractSlide) {
                          if ($document->elementExists('a:graphic/a:graphicData/a:tbl', $oNode)) {
@@ -7293,6 +7393,74 @@ index 000000000..e1e55211d
 +        return $reader;
 +    }
 +}
+diff --git a/src/PhpPresentation/Slide/Background/Gradient.php b/src/PhpPresentation/Slide/Background/Gradient.php
+new file mode 100644
+index 000000000..ebffea59f
+--- /dev/null
++++ b/src/PhpPresentation/Slide/Background/Gradient.php
+@@ -0,0 +1,62 @@
++<?php
++
++/**
++ * This file is part of PHPPresentation - A pure PHP library for reading and writing
++ * presentations documents.
++ *
++ * PHPPresentation is free software distributed under the terms of the GNU Lesser
++ * General Public License version 3 as published by the Free Software Foundation.
++ *
++ * For the full copyright and license information, please read the LICENSE
++ * file that was distributed with this source code. For the full list of
++ * contributors, visit https://github.com/PHPOffice/PHPPresentation/contributors.
++ *
++ * @see        https://github.com/PHPOffice/PHPPresentation
++ *
++ * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
++ */
++
++declare(strict_types=1);
++
++namespace PhpOffice\PhpPresentation\Slide\Background;
++
++use PhpOffice\PhpPresentation\Slide\AbstractBackground;
++use PhpOffice\PhpPresentation\Style\Fill;
++
++/**
++ * A background painted with a gradient.
++ *
++ * The gradient is a fill, and it is the same fill a shape is painted with: the stops, the
++ * angle and whether the gradient runs from the middle outwards are all the things
++ * {@see Fill} holds. A background that is a gradient and a shape that is a gradient are
++ * therefore one thing said in two places, which is why this holds one rather than a copy of
++ * its parts.
++ *
++ * The fill is not optional, where the colour of a {@see Color} background is: a background
++ * that names no colour is nothing at all, and a background that names no gradient is a
++ * gradient of the two stops a fill holds by default.
++ */
++class Gradient extends AbstractBackground
++{
++    /**
++     * @var Fill
++     */
++    protected $fill;
++
++    public function __construct()
++    {
++        $this->fill = (new Fill())->setFillType(Fill::FILL_GRADIENT_LINEAR);
++    }
++
++    public function setFill(Fill $fill): self
++    {
++        $this->fill = $fill;
++
++        return $this;
++    }
++
++    public function getFill(): Fill
++    {
++        return $this->fill;
++    }
++}
 diff --git a/src/PhpPresentation/Slide/Background/Image.php b/src/PhpPresentation/Slide/Background/Image.php
 index 801464dc0..5b104e253 100644
 --- a/src/PhpPresentation/Slide/Background/Image.php
@@ -7527,7 +7695,7 @@ index 20ee825fe..76f4dd9b9 100644
          return $this;
      }
 diff --git a/src/PhpPresentation/Style/Fill.php b/src/PhpPresentation/Style/Fill.php
-index f462bf161..295faf22b 100644
+index f462bf161..d46f590de 100644
 --- a/src/PhpPresentation/Style/Fill.php
 +++ b/src/PhpPresentation/Style/Fill.php
 @@ -25,27 +25,144 @@ use PhpOffice\PhpPresentation\ComparableInterface;
@@ -7692,6 +7860,103 @@ index f462bf161..295faf22b 100644
  
      /**
       * Fill type.
+@@ -75,6 +192,13 @@ class Fill implements ComparableInterface
+      */
+     private $endColor;
+ 
++    /**
++     * The stops of the gradient, when it has more than the two its colours name.
++     *
++     * @var GradientStop[]
++     */
++    private $gradientStops = [];
++
+     /**
+      * Hash index.
+      *
+@@ -169,6 +293,64 @@ class Fill implements ComparableInterface
+         return $this;
+     }
+ 
++    /**
++     * Get the stops of the gradient.
++     *
++     * A gradient of two stops is what the start and end colours name, and they are what a
++     * fill has always held; a gradient of more stops is a list of its own, and the list is
++     * what is written. The two are never both there: a fill that names stops says so, and
++     * the colours it holds are then of no consequence to what is written.
++     *
++     * The stops a fill that names none has share the colour objects of the fill itself, so a
++     * colour that is changed after the fact is still the colour the gradient is written with.
++     *
++     * @return GradientStop[]
++     */
++    public function getGradientStops(): array
++    {
++        if ([] !== $this->gradientStops) {
++            return $this->gradientStops;
++        }
++
++        return [
++            new GradientStop(GradientStop::POSITION_START, $this->startColor),
++            new GradientStop(GradientStop::POSITION_END, $this->endColor),
++        ];
++    }
++
++    /**
++     * Set the stops of the gradient.
++     *
++     * An empty list is the two stops the start and end colours name, which is what a fill
++     * that names none is written as.
++     *
++     * @param GradientStop[] $stops
++     */
++    public function setGradientStops(array $stops): self
++    {
++        $this->gradientStops = array_values($stops);
++
++        return $this;
++    }
++
++    /**
++     * Add a stop to the gradient.
++     *
++     * A fill that names no stops has the two its colours name, and the stop added to it is
++     * a third one rather than a replacement of the two: a gradient of one stop is not a
++     * gradient, and the format asks for two at the very least.
++     */
++    public function addGradientStop(GradientStop $stop): self
++    {
++        if ([] === $this->gradientStops) {
++            $this->gradientStops = $this->getGradientStops();
++        }
++
++        $this->gradientStops[] = $stop;
++
++        return $this;
++    }
++
+     /**
+      * Get hash code.
+      *
+@@ -176,11 +358,17 @@ class Fill implements ComparableInterface
+      */
+     public function getHashCode(): string
+     {
++        $stops = '';
++        foreach ($this->getGradientStops() as $stop) {
++            $stops .= $stop->getHashCode();
++        }
++
+         return md5(
+             $this->getFillType()
+             . $this->getRotation()
+             . $this->getStartColor()->getHashCode()
+             . $this->getEndColor()->getHashCode()
++            . $stops
+             . __CLASS__
+         );
+     }
 diff --git a/src/PhpPresentation/Style/Font.php b/src/PhpPresentation/Style/Font.php
 index 27fc252e9..73d898b18 100644
 --- a/src/PhpPresentation/Style/Font.php
@@ -7707,6 +7972,158 @@ index 27fc252e9..73d898b18 100644
  
      /**
       * Name.
+diff --git a/src/PhpPresentation/Style/GradientStop.php b/src/PhpPresentation/Style/GradientStop.php
+new file mode 100644
+index 000000000..97109c478
+--- /dev/null
++++ b/src/PhpPresentation/Style/GradientStop.php
+@@ -0,0 +1,146 @@
++<?php
++
++/**
++ * This file is part of PHPPresentation - A pure PHP library for reading and writing
++ * presentations documents.
++ *
++ * PHPPresentation is free software distributed under the terms of the GNU Lesser
++ * General Public License version 3 as published by the Free Software Foundation.
++ *
++ * For the full copyright and license information, please read the LICENSE
++ * file that was distributed with this source code. For the full list of
++ * contributors, visit https://github.com/PHPOffice/PHPPresentation/contributors.
++ *
++ * @see        https://github.com/PHPOffice/PHPPresentation
++ *
++ * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
++ */
++
++declare(strict_types=1);
++
++namespace PhpOffice\PhpPresentation\Style;
++
++use PhpOffice\PhpPresentation\ComparableInterface;
++
++/**
++ * One stop of a gradient: the colour the gradient is at, and how far along it is.
++ *
++ * The position is the one `a:gs/@pos` counts, from 0 to 100000, which is a percentage of
++ * the gradient with two decimal places' worth of room in it. It is not a percentage, and a
++ * position written as one has to be scaled before it is written.
++ */
++class GradientStop implements ComparableInterface
++{
++    /** The position of the first stop of a gradient. */
++    public const POSITION_START = 0;
++
++    /** The position of the last stop of a gradient. */
++    public const POSITION_END = 100000;
++
++    /**
++     * Position of the stop along the gradient.
++     *
++     * @var int
++     */
++    private $position;
++
++    /**
++     * Colour of the stop.
++     *
++     * @var Color
++     */
++    private $color;
++
++    /**
++     * Hash index.
++     *
++     * @var int
++     */
++    private $hashIndex;
++
++    public function __construct(int $position = self::POSITION_START, ?Color $color = null)
++    {
++        $this->position = $position;
++        $this->color = $color ?? new Color(Color::COLOR_BLACK);
++    }
++
++    /**
++     * Get Position.
++     */
++    public function getPosition(): int
++    {
++        return $this->position;
++    }
++
++    /**
++     * Set Position.
++     */
++    public function setPosition(int $position): self
++    {
++        $this->position = $position;
++
++        return $this;
++    }
++
++    /**
++     * Get Color.
++     */
++    public function getColor(): Color
++    {
++        return $this->color;
++    }
++
++    /**
++     * Set Color.
++     */
++    public function setColor(Color $color): self
++    {
++        $this->color = $color;
++
++        return $this;
++    }
++
++    /**
++     * Get hash code.
++     *
++     * @return string Hash code
++     */
++    public function getHashCode(): string
++    {
++        return md5(
++            $this->getPosition()
++            . $this->getColor()->getHashCode()
++            . __CLASS__
++        );
++    }
++
++    /**
++     * Get hash index.
++     *
++     * Note that this index may vary during script execution! Only reliable moment is
++     * while doing a write of a workbook and when changes are not allowed.
++     *
++     * @return null|int Hash index
++     */
++    public function getHashIndex(): ?int
++    {
++        return $this->hashIndex;
++    }
++
++    /**
++     * Set hash index.
++     *
++     * Note that this index may vary during script execution! Only reliable moment is
++     * while doing a write of a workbook and when changes are not allowed.
++     *
++     * @param int $value Hash index
++     *
++     * @return $this
++     */
++    public function setHashIndex(int $value)
++    {
++        $this->hashIndex = $value;
++
++        return $this;
++    }
++}
 diff --git a/src/PhpPresentation/Traits/ShapeCollection.php b/src/PhpPresentation/Traits/ShapeCollection.php
 index 6d65902fb..f6edee5f4 100644
 --- a/src/PhpPresentation/Traits/ShapeCollection.php
@@ -8347,7 +8764,7 @@ index 7b3f58e4e..c1eea1653 100644
       * @return Chart[]
       */
 diff --git a/src/PhpPresentation/Writer/ODPresentation/Content.php b/src/PhpPresentation/Writer/ODPresentation/Content.php
-index ef4272314..b6db760af 100644
+index ef4272314..1bd71c960 100644
 --- a/src/PhpPresentation/Writer/ODPresentation/Content.php
 +++ b/src/PhpPresentation/Writer/ODPresentation/Content.php
 @@ -24,15 +24,21 @@ use PhpOffice\Common\Adapter\Zip\ZipInterface;
@@ -9631,9 +10048,21 @@ index ef4272314..b6db760af 100644
 +
 +    /**
 +     * Name the automatic style a run wears, sharing one with every run that writes the same thing.
-+     */
+      */
+-    protected function writeTxtStyle(XMLWriter $objWriter, RichText $shape): void
 +    protected function addTextStyle(Run $run): string
-+    {
+     {
+-        // style:style
+-        $objWriter->startElement('style:style');
+-        $objWriter->writeAttribute('style:name', 'gr' . $this->shapeId);
+-        $objWriter->writeAttribute('style:family', 'graphic');
+-        $objWriter->writeAttribute('style:parent-style-name', 'standard');
+-        // style:graphic-properties
+-        $objWriter->startElement('style:graphic-properties');
+-        $objWriter->writeAttribute('style:mirror', 'none');
+-        $this->writeStylePartShadow($objWriter, $shape->getShadow());
+-        if (is_bool($shape->hasAutoShrinkVertical())) {
+-            $objWriter->writeAttribute('draw:auto-grow-height', var_export($shape->hasAutoShrinkVertical(), true));
 +        return $this->shareAutomaticStyle('text', function (XMLWriter $objWriter) use ($run): void {
 +            $this->writeTextStyleBody($objWriter, $run);
 +        }, $run);
@@ -9653,21 +10082,9 @@ index ef4272314..b6db760af 100644
 +     * @param null|object              $owner     the object wearing the style, which the second pass
 +     *                                            looks the name up by, or null when the caller keeps
 +     *                                            the name itself
-      */
--    protected function writeTxtStyle(XMLWriter $objWriter, RichText $shape): void
++     */
 +    private function shareAutomaticStyle(string $family, callable $writeBody, ?object $owner = null): string
-     {
--        // style:style
--        $objWriter->startElement('style:style');
--        $objWriter->writeAttribute('style:name', 'gr' . $this->shapeId);
--        $objWriter->writeAttribute('style:family', 'graphic');
--        $objWriter->writeAttribute('style:parent-style-name', 'standard');
--        // style:graphic-properties
--        $objWriter->startElement('style:graphic-properties');
--        $objWriter->writeAttribute('style:mirror', 'none');
--        $this->writeStylePartShadow($objWriter, $shape->getShadow());
--        if (is_bool($shape->hasAutoShrinkVertical())) {
--            $objWriter->writeAttribute('draw:auto-grow-height', var_export($shape->hasAutoShrinkVertical(), true));
++    {
 +        $bodyWriter = new XMLWriter();
 +        $writeBody($bodyWriter);
 +
@@ -10167,7 +10584,7 @@ index ef4272314..b6db760af 100644
 +            switch ($shape->getBorder()->getLineStyle()) {
 +                case Border::LINE_NONE:
 +                    $objWriter->writeAttribute('draw:stroke', 'none');
- 
++
 +                    break;
 +                case Border::LINE_SINGLE:
 +                    $objWriter->writeAttribute('draw:stroke', 'solid');
@@ -10188,7 +10605,7 @@ index ef4272314..b6db760af 100644
 +            $objWriter->endElement();
 +        }, $shape);
 +    }
-+
+ 
 +    /**
 +     * The value of an ODF fo:border property: a width, a style and a colour.
 +     */
@@ -10394,7 +10811,7 @@ index ef4272314..b6db760af 100644
                          }
                      }
                  }
-@@ -1182,252 +1876,249 @@ class Content extends AbstractDecoratorWriter
+@@ -1182,252 +1876,253 @@ class Content extends AbstractDecoratorWriter
      }
  
      /**
@@ -10808,6 +11225,10 @@ index ef4272314..b6db760af 100644
 +                    $objWriter->writeAttribute('draw:fill-image-name', 'background_' . $incPage);
 +                    $objWriter->writeAttribute('style:repeat', 'stretch');
 +                }
++                if ($oBackground instanceof Slide\Background\Gradient) {
++                    $objWriter->writeAttribute('draw:fill', 'gradient');
++                    $objWriter->writeAttribute('draw:fill-gradient-name', 'gradient_' . $oBackground->getFill()->getHashCode());
++                }
              }
 -        }
 -        $objWriter->endElement();
@@ -10831,7 +11252,7 @@ index ef4272314..b6db760af 100644
              case Fill::FILL_SOLID:
                  $objWriter->writeAttribute('draw:fill', 'solid');
                  $objWriter->writeAttribute('draw:fill-color', '#' . $oFill->getStartColor()->getRGB());
-@@ -1441,6 +2132,17 @@ class Content extends AbstractDecoratorWriter
+@@ -1441,6 +2136,17 @@ class Content extends AbstractDecoratorWriter
          }
      }
  
@@ -12248,14 +12669,19 @@ index 000000000..607cf802c
 +    ];
 +}
 diff --git a/src/PhpPresentation/Writer/ODPresentation/Styles.php b/src/PhpPresentation/Writer/ODPresentation/Styles.php
-index e3f2f8cbe..e4435786b 100644
+index e3f2f8cbe..5456cf607 100644
 --- a/src/PhpPresentation/Writer/ODPresentation/Styles.php
 +++ b/src/PhpPresentation/Writer/ODPresentation/Styles.php
-@@ -27,12 +27,18 @@ use PhpOffice\Common\XMLWriter;
+@@ -24,15 +24,23 @@ use PhpOffice\Common\Adapter\Zip\ZipInterface;
+ use PhpOffice\Common\Drawing as CommonDrawing;
+ use PhpOffice\Common\Text;
+ use PhpOffice\Common\XMLWriter;
++use PhpOffice\PhpPresentation\Exception\PhpPresentationException;
  use PhpOffice\PhpPresentation\Shape\Group;
  use PhpOffice\PhpPresentation\Shape\RichText;
  use PhpOffice\PhpPresentation\Shape\Table;
 +use PhpOffice\PhpPresentation\Slide\Background\Color as BackgroundColor;
++use PhpOffice\PhpPresentation\Slide\Background\Gradient;
  use PhpOffice\PhpPresentation\Slide\Background\Image;
  use PhpOffice\PhpPresentation\Style\Border;
  use PhpOffice\PhpPresentation\Style\Fill;
@@ -12270,7 +12696,7 @@ index e3f2f8cbe..e4435786b 100644
      /**
       * Stores font styles draw:gradient nodes.
       *
-@@ -40,6 +46,13 @@ class Styles extends AbstractDecoratorWriter
+@@ -40,6 +48,13 @@ class Styles extends AbstractDecoratorWriter
       */
      protected $arrayGradient = [];
  
@@ -12284,7 +12710,7 @@ index e3f2f8cbe..e4435786b 100644
      /**
       * Stores font styles draw:stroke-dash nodes.
       *
-@@ -108,18 +121,11 @@ class Styles extends AbstractDecoratorWriter
+@@ -108,18 +123,16 @@ class Styles extends AbstractDecoratorWriter
  
          // office:styles
          $objWriter->startElement('office:styles');
@@ -12305,19 +12731,29 @@ index e3f2f8cbe..e4435786b 100644
 +        if ($oMasterBackground instanceof Image) {
 +            $this->writeBackgroundStyle($objWriter, $oMasterBackground, self::MASTER_PAGE_STYLE);
 +        }
++        // The gradient a master page is filled with, which the style below names
++        if ($oMasterBackground instanceof Gradient
++            && !in_array($oMasterBackground->getFill()->getHashCode(), $this->arrayGradient)) {
++            $this->writeGradientFill($objWriter, $oMasterBackground->getFill());
++        }
  
          foreach ($this->getPresentation()->getAllSlides() as $keySlide => $oSlide) {
              foreach ($oSlide->getShapeCollection() as $shape) {
-@@ -133,7 +139,7 @@ class Styles extends AbstractDecoratorWriter
+@@ -133,7 +146,12 @@ class Styles extends AbstractDecoratorWriter
              }
              $oBkgImage = $oSlide->getBackground();
              if ($oBkgImage instanceof Image) {
 -                $this->writeBackgroundStyle($objWriter, $oBkgImage, $keySlide);
 +                $this->writeBackgroundStyle($objWriter, $oBkgImage, (string) $keySlide);
++            }
++            // The gradient a slide is filled with, which the page names
++            if ($oBkgImage instanceof Gradient
++                && !in_array($oBkgImage->getFill()->getHashCode(), $this->arrayGradient)) {
++                $this->writeGradientFill($objWriter, $oBkgImage->getFill());
              }
          }
          // > office:styles
-@@ -141,6 +147,29 @@ class Styles extends AbstractDecoratorWriter
+@@ -141,6 +159,33 @@ class Styles extends AbstractDecoratorWriter
  
          // office:automatic-styles
          $objWriter->startElement('office:automatic-styles');
@@ -12340,6 +12776,10 @@ index e3f2f8cbe..e4435786b 100644
 +            $objWriter->writeAttribute('draw:fill-image-name', 'background_' . self::MASTER_PAGE_STYLE);
 +            $objWriter->writeAttribute('style:repeat', 'stretch');
 +        }
++        if ($oMasterBackground instanceof Gradient) {
++            $objWriter->writeAttribute('draw:fill', 'gradient');
++            $objWriter->writeAttribute('draw:fill-gradient-name', 'gradient_' . $oMasterBackground->getFill()->getHashCode());
++        }
 +        // > style:drawing-page-properties
 +        $objWriter->endElement();
 +        // > style:style
@@ -12347,7 +12787,7 @@ index e3f2f8cbe..e4435786b 100644
          // style:page-layout
          $objWriter->startElement('style:page-layout');
          $objWriter->writeAttribute('style:name', $stylePageLayout);
-@@ -168,7 +197,7 @@ class Styles extends AbstractDecoratorWriter
+@@ -168,7 +213,7 @@ class Styles extends AbstractDecoratorWriter
          $objWriter->writeAttribute('style:name', 'Standard');
          $objWriter->writeAttribute('style:display-name', 'Standard');
          $objWriter->writeAttribute('style:page-layout-name', $stylePageLayout);
@@ -12356,7 +12796,7 @@ index e3f2f8cbe..e4435786b 100644
          $objWriter->endElement();
          $objWriter->endElement();
  
-@@ -189,6 +218,9 @@ class Styles extends AbstractDecoratorWriter
+@@ -189,6 +234,9 @@ class Styles extends AbstractDecoratorWriter
                  $this->writeGradientFill($objWriter, $oFill);
              }
          }
@@ -12366,7 +12806,7 @@ index e3f2f8cbe..e4435786b 100644
          $oBorder = $shape->getBorder();
          if (Border::DASH_SOLID != $oBorder->getDashStyle()) {
              if (!in_array($oBorder->getDashStyle(), $this->arrayStrokeDash)) {
-@@ -280,11 +312,17 @@ class Styles extends AbstractDecoratorWriter
+@@ -280,11 +328,17 @@ class Styles extends AbstractDecoratorWriter
      {
          foreach ($shape->getRows() as $row) {
              foreach ($row->getCells() as $cell) {
@@ -12387,7 +12827,44 @@ index e3f2f8cbe..e4435786b 100644
              }
          }
      }
-@@ -323,14 +361,36 @@ class Styles extends AbstractDecoratorWriter
+@@ -309,28 +363,69 @@ class Styles extends AbstractDecoratorWriter
+      */
+     protected function writeGradientFill(XMLWriter $objWriter, Fill $oFill): void
+     {
++        $stops = $oFill->getGradientStops();
++        if (count($stops) > 2) {
++            // OpenDocument has two colours in a gradient and no way of saying where a third
++            // one is, so a gradient of more stops is not written at all. A gradient that lost
++            // its middle would be another gradient from the one that was asked for, and a
++            // file that says another thing is worse than a file that says nothing.
++            throw new PhpPresentationException(
++                'OpenDocument has two colours in a gradient, and no way of saying where a third one is, '
++                . 'so a gradient of more than two stops cannot be written.'
++            );
++        }
++        $start = $stops[0];
++        $end = $stops[count($stops) - 1];
++        $radial = Fill::FILL_GRADIENT_PATH == $oFill->getFillType();
++
+         $objWriter->startElement('draw:gradient');
+         $objWriter->writeAttribute('draw:name', 'gradient_' . $oFill->getHashCode());
+         $objWriter->writeAttribute('draw:display-name', 'gradient_' . $oFill->getHashCode());
+-        $objWriter->writeAttribute('draw:style', 'linear');
++        // A gradient that runs from the middle of the shape outwards is a radial one, and it
++        // was written as a linear one, which is a different gradient altogether.
++        $objWriter->writeAttribute('draw:style', $radial ? 'radial' : 'linear');
+         $objWriter->writeAttribute('draw:start-intensity', '100%');
+         $objWriter->writeAttribute('draw:end-intensity', '100%');
+-        $objWriter->writeAttribute('draw:start-color', '#' . $oFill->getStartColor()->getRGB());
+-        $objWriter->writeAttribute('draw:end-color', '#' . $oFill->getEndColor()->getRGB());
++        $objWriter->writeAttribute('draw:start-color', '#' . $start->getColor()->getRGB());
++        $objWriter->writeAttribute('draw:end-color', '#' . $end->getColor()->getRGB());
+         $objWriter->writeAttribute('draw:border', '0%');
+-        $objWriter->writeAttribute('draw:angle', $oFill->getRotation() - 90);
++        // The angle of a radial gradient is the direction its focus lies in, and a focus in
++        // the middle of the shape is the one that is written.
++        $objWriter->writeAttribute('draw:angle', $radial ? '0' : $oFill->getRotation() - 90);
+         $objWriter->endElement();
          $this->arrayGradient[] = $oFill->getHashCode();
      }
  
@@ -12445,7 +12922,7 @@ index 7a337da2e..0588934e6 100644
                  $this->getZip()->addFromString('Thumbnails/thumbnail.png', $imageContents);
              }
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/AbstractDecoratorWriter.php b/src/PhpPresentation/Writer/PowerPoint2007/AbstractDecoratorWriter.php
-index 869e0e2b4..90325c7f4 100644
+index 869e0e2b4..e1855403d 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/AbstractDecoratorWriter.php
 +++ b/src/PhpPresentation/Writer/PowerPoint2007/AbstractDecoratorWriter.php
 @@ -62,10 +62,6 @@ abstract class AbstractDecoratorWriter extends \PhpOffice\PhpPresentation\Writer
@@ -12504,7 +12981,64 @@ index 869e0e2b4..90325c7f4 100644
          if (Fill::FILL_NONE == $pFill->getFillType()) {
              $objWriter->writeElement('a:noFill');
  
-@@ -211,6 +218,14 @@ abstract class AbstractDecoratorWriter extends \PhpOffice\PhpPresentation\Writer
+@@ -183,25 +190,40 @@ abstract class AbstractDecoratorWriter extends \PhpOffice\PhpPresentation\Writer
+ 
+         // a:gsLst
+         $objWriter->startElement('a:gsLst');
+-        // a:gs
+-        $objWriter->startElement('a:gs');
+-        $objWriter->writeAttribute('pos', '0');
+-        $this->writeColor($objWriter, $pFill->getStartColor());
+-        $objWriter->endElement();
+-
+-        // a:gs
+-        $objWriter->startElement('a:gs');
+-        $objWriter->writeAttribute('pos', '100000');
+-        $this->writeColor($objWriter, $pFill->getEndColor());
++        foreach ($pFill->getGradientStops() as $stop) {
++            // a:gs
++            $objWriter->startElement('a:gs');
++            $objWriter->writeAttribute('pos', (string) $stop->getPosition());
++            $this->writeColor($objWriter, $stop->getColor());
++            $objWriter->endElement();
++        }
+         $objWriter->endElement();
+ 
+-        $objWriter->endElement();
++        // A path fill runs from the middle of the shape outwards, and the format says so with
++        // `a:path` where a gradient that runs from one side to the other says `a:lin`. Every
++        // gradient was written as `a:lin`, so a fill that named the path came out linear, and
++        // the shape it was on lost the very thing that made it a path.
++        if (Fill::FILL_GRADIENT_PATH == $pFill->getFillType()) {
++            // a:path
++            $objWriter->startElement('a:path');
++            $objWriter->writeAttribute('path', 'circle');
++
++            // a:fillToRect, the focus the gradient is measured from, in the middle of the shape
++            $objWriter->startElement('a:fillToRect');
++            $objWriter->writeAttribute('l', '50000');
++            $objWriter->writeAttribute('t', '50000');
++            $objWriter->writeAttribute('r', '50000');
++            $objWriter->writeAttribute('b', '50000');
++            $objWriter->endElement();
+ 
+-        // a:lin
+-        $objWriter->startElement('a:lin');
+-        $objWriter->writeAttribute('ang', CommonDrawing::degreesToAngle((int) $pFill->getRotation()));
+-        $objWriter->writeAttribute('scaled', '0');
+-        $objWriter->endElement();
++            $objWriter->endElement();
++        } else {
++            // a:lin
++            $objWriter->startElement('a:lin');
++            $objWriter->writeAttribute('ang', CommonDrawing::degreesToAngle((int) $pFill->getRotation()));
++            $objWriter->writeAttribute('scaled', '0');
++            $objWriter->endElement();
++        }
+ 
+         $objWriter->endElement();
+     }
+@@ -211,6 +233,14 @@ abstract class AbstractDecoratorWriter extends \PhpOffice\PhpPresentation\Writer
          // a:pattFill
          $objWriter->startElement('a:pattFill');
  
@@ -12520,7 +13054,7 @@ index 869e0e2b4..90325c7f4 100644
          $objWriter->startElement('a:fgClr');
  
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php b/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php
-index 2f0544fd7..70b942c85 100644
+index 2f0544fd7..fe56cbb91 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php
 +++ b/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php
 @@ -34,11 +34,14 @@ use PhpOffice\PhpPresentation\Shape\Drawing\AbstractDrawingAdapter;
@@ -13080,6 +13614,23 @@ index 2f0544fd7..70b942c85 100644
          $objWriter->endElement(); // p:grpSpPr
  
          $this->writeShapeCollection($objWriter, $group->getShapeCollection(), $shapeId);
+@@ -1561,6 +1751,16 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+             // > p:bgPr
+             $objWriter->endElement();
+         }
++        if ($oBackground instanceof Slide\Background\Gradient) {
++            // p:bgPr
++            $objWriter->startElement('p:bgPr');
++            // a:gradFill
++            $this->writeGradientFill($objWriter, $oBackground->getFill());
++            // p:bgPr/a:effectLst
++            $objWriter->writeElement('a:effectLst');
++            // > p:bgPr
++            $objWriter->endElement();
++        }
+         // @link : http://www.officeopenxml.com/prSlide-background.php
+         if ($oBackground instanceof Slide\Background\SchemeColor) {
+             // p:bgRef
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/CommentAuthors.php b/src/PhpPresentation/Writer/PowerPoint2007/CommentAuthors.php
 index 4d02ccba4..63576e1e7 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/CommentAuthors.php
@@ -15152,7 +15703,7 @@ index 95abfb339..63ef5d6f0 100644
          // Relationship theme/theme1.xml
          $this->writeRelationship($objWriter, $relId, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme', '../theme/theme' . $oMasterSlide->getRelsIndex() . '.xml');
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/PptSlides.php b/src/PhpPresentation/Writer/PowerPoint2007/PptSlides.php
-index bc3fe2735..569a5727f 100644
+index bc3fe2735..530143985 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/PptSlides.php
 +++ b/src/PhpPresentation/Writer/PowerPoint2007/PptSlides.php
 @@ -26,12 +26,8 @@ use PhpOffice\Common\XMLWriter;
@@ -15385,6 +15936,18 @@ index bc3fe2735..569a5727f 100644
  
          // Background
          if ($pSlide->getBackground() instanceof Slide\AbstractBackground) {
+@@ -396,6 +232,11 @@ class PptSlides extends AbstractSlide
+                 $objWriter->endElement();
+             }
+ 
++            if ($oBackground instanceof Slide\Background\Gradient) {
++                // a:gradFill
++                $this->writeGradientFill($objWriter, $oBackground->getFill());
++            }
++
+             // > p:bgPr
+             $objWriter->endElement();
+ 
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/Relationships.php b/src/PhpPresentation/Writer/PowerPoint2007/Relationships.php
 index 501dbc615..9f16e9861 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/Relationships.php
