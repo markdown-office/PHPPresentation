@@ -1390,6 +1390,14 @@ class PowerPoint2007 implements ReaderInterface
             }
         }
 
+        // The geometry the picture is drawn in: the name of a preset shape, which is what a
+        // picture cropped to a shape is written with. The adjustments of an `a:avLst` are not
+        // read, because the Writer writes none.
+        $prst = $document->getAttribute('prst', $node, 'p:spPr/a:prstGeom');
+        if (null !== $prst) {
+            $oShape->setGeometry($prst);
+        }
+
         $oElement = $document->getElement('p:spPr/a:xfrm', $node);
         if ($oElement instanceof DOMElement) {
             if ($oElement->hasAttribute('rot')) {
