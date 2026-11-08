@@ -3499,7 +3499,7 @@ index ddf750dfc..3bf1956dc 100644
      {
          if (substr($expr, -1) == '%') {
 diff --git a/src/PhpPresentation/Reader/PowerPoint2007.php b/src/PhpPresentation/Reader/PowerPoint2007.php
-index d93a19168..e05ae9323 100644
+index d93a19168..86e1a974d 100644
 --- a/src/PhpPresentation/Reader/PowerPoint2007.php
 +++ b/src/PhpPresentation/Reader/PowerPoint2007.php
 @@ -33,14 +33,21 @@ use PhpOffice\PhpPresentation\Exception\FileNotFoundException;
@@ -4191,14 +4191,14 @@ index d93a19168..e05ae9323 100644
  
              return $oSlideLayout;
          }
-@@ -728,7 +1019,59 @@ class PowerPoint2007 implements ReaderInterface
+@@ -728,9 +1019,61 @@ class PowerPoint2007 implements ReaderInterface
                      $oSlideMaster->addSchemeColor($oSchemeColor);
                  }
              }
 +            $this->themeFonts = $this->readThemeFonts($xmlReader);
-+        }
-+    }
-+
+         }
+     }
+ 
 +    /**
 +     * The fonts of the theme of a master or a notes master.
 +     *
@@ -4217,7 +4217,7 @@ index d93a19168..e05ae9323 100644
 +                    return $this->readThemeFonts($xmlReader);
 +                }
 +            }
-         }
++        }
 +
 +        return [];
 +    }
@@ -4248,9 +4248,11 @@ index d93a19168..e05ae9323 100644
 +    protected function getTypeface(string $typeface): string
 +    {
 +        return $this->themeFonts[$typeface] ?? $typeface;
-     }
- 
++    }
++
      protected function loadSlideBackground(XMLReader $xmlReader, DOMElement $oElement, AbstractSlide $oSlide): void
+     {
+         // Background color
 @@ -765,15 +1108,8 @@ class PowerPoint2007 implements ReaderInterface
              $relImg = $this->arrayRels[$oSlide->getRelsIndex()][$oElementImage->getAttribute('r:embed')];
              if (is_array($relImg)) {
@@ -4573,7 +4575,7 @@ index d93a19168..e05ae9323 100644
              }
          }
  
-@@ -862,6 +1381,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -862,6 +1381,21 @@ class PowerPoint2007 implements ReaderInterface
          if ($oElement instanceof DOMElement) {
              $oFill = $this->loadStyleFill($document, $oElement);
              $oShape->setFill($oFill);
@@ -4584,10 +4586,18 @@ index d93a19168..e05ae9323 100644
 +            if ($oElementBorder instanceof DOMElement) {
 +                $this->loadStyleBorder($document, $oElementBorder, $oShape->getBorder());
 +            }
++        }
++
++        // The geometry the picture is drawn in: the name of a preset shape, which is what a
++        // picture cropped to a shape is written with. The adjustments of an `a:avLst` are not
++        // read, because the Writer writes none.
++        $prst = $document->getAttribute('prst', $node, 'p:spPr/a:prstGeom');
++        if (null !== $prst) {
++            $oShape->setGeometry($prst);
          }
  
          $oElement = $document->getElement('p:spPr/a:xfrm', $node);
-@@ -897,7 +1423,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -897,7 +1431,7 @@ class PowerPoint2007 implements ReaderInterface
                  $this->loadShadow($document, $oElement)
              );
          }
@@ -4596,7 +4606,7 @@ index d93a19168..e05ae9323 100644
      }
  
      /**
-@@ -905,44 +1431,47 @@ class PowerPoint2007 implements ReaderInterface
+@@ -905,44 +1439,47 @@ class PowerPoint2007 implements ReaderInterface
       */
      protected function loadShadow(XMLReader $document, DOMElement $node): ?Shadow
      {
@@ -4678,7 +4688,7 @@ index d93a19168..e05ae9323 100644
              }
          }
  
-@@ -950,21 +1479,126 @@ class PowerPoint2007 implements ReaderInterface
+@@ -950,21 +1487,126 @@ class PowerPoint2007 implements ReaderInterface
      }
  
      /**
@@ -4812,7 +4822,7 @@ index d93a19168..e05ae9323 100644
          }
  
          $oElement = $document->getElement('p:spPr/a:xfrm', $node);
-@@ -991,6 +1625,23 @@ class PowerPoint2007 implements ReaderInterface
+@@ -991,6 +1633,23 @@ class PowerPoint2007 implements ReaderInterface
                  $oShape->setHeight((int) CommonDrawing::emuToPixels((int) $oElement->getAttribute('cy')));
              }
          }
@@ -4836,7 +4846,7 @@ index d93a19168..e05ae9323 100644
  
          $oElement = $document->getElement('p:nvSpPr/p:nvPr/p:ph', $node);
          if ($oElement instanceof DOMElement) {
-@@ -1011,21 +1662,30 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1011,21 +1670,30 @@ class PowerPoint2007 implements ReaderInterface
          // FBU-20210202+ Read body definitions
          $bodyPr = $document->getElement('p:txBody/a:bodyPr', $node);
          if ($bodyPr instanceof DOMElement) {
@@ -4871,7 +4881,7 @@ index d93a19168..e05ae9323 100644
          }
  
          $arrayElements = $document->getElements('p:txBody/a:p', $node);
-@@ -1034,12 +1694,20 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1034,12 +1702,20 @@ class PowerPoint2007 implements ReaderInterface
                  $this->loadParagraph($document, $oElement, $oShape);
              }
          }
@@ -4892,7 +4902,7 @@ index d93a19168..e05ae9323 100644
          }
  
          if (count($oShape->getParagraphs()) > 0) {
-@@ -1047,13 +1715,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1047,13 +1723,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4910,7 +4920,7 @@ index d93a19168..e05ae9323 100644
          if ($oElement instanceof DOMElement) {
              if ($oElement->hasAttribute('name')) {
                  $oShape->setName($oElement->getAttribute('name'));
-@@ -1061,6 +1730,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1061,6 +1738,8 @@ class PowerPoint2007 implements ReaderInterface
              if ($oElement->hasAttribute('descr')) {
                  $oShape->setDescription($oElement->getAttribute('descr'));
              }
@@ -4919,7 +4929,7 @@ index d93a19168..e05ae9323 100644
          }
  
          $oElement = $document->getElement('p:xfrm/a:off', $node);
-@@ -1083,6 +1754,11 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1083,6 +1762,11 @@ class PowerPoint2007 implements ReaderInterface
              }
          }
  
@@ -4931,7 +4941,7 @@ index d93a19168..e05ae9323 100644
          $arrayElements = $document->getElements('a:graphic/a:graphicData/a:tbl/a:tblGrid/a:gridCol', $node);
          $oShape->setNumColumns($arrayElements->length);
          $oShape->createRow();
-@@ -1124,6 +1800,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1124,6 +1808,7 @@ class PowerPoint2007 implements ReaderInterface
                          $this->loadParagraph($document, $oElementPara, $oCell);
                      }
                  }
@@ -4939,7 +4949,7 @@ index d93a19168..e05ae9323 100644
  
                  $oElementTcPr = $document->getElement('a:tcPr', $oElementCell);
                  if ($oElementTcPr instanceof DOMElement) {
-@@ -1185,13 +1862,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1185,13 +1870,14 @@ class PowerPoint2007 implements ReaderInterface
          }
      }
  
@@ -4956,7 +4966,7 @@ index d93a19168..e05ae9323 100644
          if ($oElement instanceof DOMElement) {
              if ($oElement->hasAttribute('name')) {
                  $oShape->setName($oElement->getAttribute('name'));
-@@ -1199,6 +1877,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1199,6 +1885,8 @@ class PowerPoint2007 implements ReaderInterface
              if ($oElement->hasAttribute('descr')) {
                  $oShape->setDescription($oElement->getAttribute('descr'));
              }
@@ -4965,7 +4975,7 @@ index d93a19168..e05ae9323 100644
          }
  
          $oElement = $document->getElement('p:xfrm/a:off', $node);
-@@ -1223,110 +1903,31 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1223,110 +1911,31 @@ class PowerPoint2007 implements ReaderInterface
  
          $chartElement = $document->getElement('a:graphic/a:graphicData/c:chart', $node);
          if ($chartElement->hasAttribute('r:id') && isset($this->arrayRels[$this->fileRels][$chartElement->getAttribute('r:id')]['Target'])) {
@@ -5094,7 +5104,7 @@ index d93a19168..e05ae9323 100644
                          $oShape->getPlotArea()->setType($shapeType);
                      }
  
-@@ -1345,7 +1946,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1345,7 +1954,7 @@ class PowerPoint2007 implements ReaderInterface
                              $oShape->getPlotArea()->getAxisX()->setMajorTickMark($elementMajorTickMark->getAttribute('val'));
                          }
                          if ($elementMinorTickMark = $xmlReader->getElement('c:minorTickMark', $oElement)) {
@@ -5103,7 +5113,7 @@ index d93a19168..e05ae9323 100644
                          }
                          if ($elementTickLabelPosition = $xmlReader->getElement('c:tickLblPos', $oElement)) {
                              $oShape->getPlotArea()->getAxisX()->setTickLabelPosition($elementTickLabelPosition->getAttribute('val'));
-@@ -1360,6 +1961,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1360,6 +1969,8 @@ class PowerPoint2007 implements ReaderInterface
                                  $oShape->getPlotArea()->getAxisX()->setOutline($outline);
                              }
                          }
@@ -5112,7 +5122,7 @@ index d93a19168..e05ae9323 100644
                      }
  
                      if ($oElement = $xmlReader->getElement('/c:chartSpace/c:chart/c:plotArea/c:valAx')) {
-@@ -1377,7 +1980,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1377,7 +1988,7 @@ class PowerPoint2007 implements ReaderInterface
                              $oShape->getPlotArea()->getAxisY()->setMajorTickMark($elementMajorTickMark->getAttribute('val'));
                          }
                          if ($elementMinorTickMark = $xmlReader->getElement('c:minorTickMark', $oElement)) {
@@ -5121,7 +5131,7 @@ index d93a19168..e05ae9323 100644
                          }
                          if ($elementTickLabelPosition = $xmlReader->getElement('c:tickLblPos', $oElement)) {
                              $oShape->getPlotArea()->getAxisY()->setTickLabelPosition($elementTickLabelPosition->getAttribute('val'));
-@@ -1385,11 +1988,13 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1385,11 +1996,13 @@ class PowerPoint2007 implements ReaderInterface
                          if ($elementCrosses = $xmlReader->getElement('c:crosses', $oElement)) {
                              $oShape->getPlotArea()->getAxisY()->setCrossesAt($elementCrosses->getAttribute('val'));
                          }
@@ -5136,7 +5146,7 @@ index d93a19168..e05ae9323 100644
                      }
  
                      if ($oElement = $xmlReader->getElement('/c:chartSpace/c:chart/c:legend')) {
-@@ -1407,7 +2012,226 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1407,7 +2020,226 @@ class PowerPoint2007 implements ReaderInterface
                      }
                  }
              }
@@ -5364,7 +5374,7 @@ index d93a19168..e05ae9323 100644
          }
      }
  
-@@ -1467,8 +2291,9 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1467,8 +2299,9 @@ class PowerPoint2007 implements ReaderInterface
  
              $oElementBuFont = $document->getElement('a:buFont', $oSubElement);
              if ($oElementBuFont instanceof DOMElement) {
@@ -5376,7 +5386,7 @@ index d93a19168..e05ae9323 100644
                  }
              }
              $oElementBuChar = $document->getElement('a:buChar', $oSubElement);
-@@ -1484,9 +2309,8 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1484,9 +2317,8 @@ class PowerPoint2007 implements ReaderInterface
                  if ($oElementBuAutoNum->hasAttribute('type')) {
                      $oParagraph->getBulletStyle()->setBulletNumericStyle($oElementBuAutoNum->getAttribute('type'));
                  }
@@ -5388,7 +5398,7 @@ index d93a19168..e05ae9323 100644
              }
              $oElementBuClr = $document->getElement('a:buClr', $oSubElement);
              if ($oElementBuClr instanceof DOMElement) {
-@@ -1501,7 +2325,7 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1501,7 +2333,7 @@ class PowerPoint2007 implements ReaderInterface
                  $oParagraph->getBulletStyle()->setBulletColor($oColor);
              }
          }
@@ -5397,7 +5407,7 @@ index d93a19168..e05ae9323 100644
          foreach ($arraySubElements as $oSubElement) {
              if (!($oSubElement instanceof DOMElement)) {
                  continue;
-@@ -1509,11 +2333,18 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1509,11 +2341,18 @@ class PowerPoint2007 implements ReaderInterface
              if ('a:br' == $oSubElement->tagName) {
                  $oParagraph->createBreak();
              }
@@ -5419,7 +5429,7 @@ index d93a19168..e05ae9323 100644
                      if ($oElementrPr->hasAttribute('b')) {
                          $att = $oElementrPr->getAttribute('b');
                          $oText->getFont()->setBold('true' == $att || '1' == $att ? true : false);
-@@ -1542,14 +2373,14 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1542,14 +2381,14 @@ class PowerPoint2007 implements ReaderInterface
                      }
                      // Color
                      $oElementSrgbClr = $document->getElement('a:solidFill/a:srgbClr', $oElementrPr);
@@ -5436,7 +5446,7 @@ index d93a19168..e05ae9323 100644
                          $oText->setHyperlink(
                              $this->loadHyperlink($document, $oElementHlinkClick, $oText->getHyperlink())
                          );
-@@ -1558,28 +2389,30 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1558,28 +2397,30 @@ class PowerPoint2007 implements ReaderInterface
                      // Font
                      $oElementFontFormat = null;
                      $oElementFontFormatComplexScript = $document->getElement('a:cs', $oElementrPr);
@@ -5474,7 +5484,7 @@ index d93a19168..e05ae9323 100644
                          }
                          if ($oElementFont->hasAttribute('panose')) {
                              $oText->getFont()->setPanose($oElementFont->getAttribute('panose'));
-@@ -1588,11 +2421,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1588,11 +2429,16 @@ class PowerPoint2007 implements ReaderInterface
                              $oText->getFont()->setPitchFamily((int) $oElementFont->getAttribute('pitchFamily'));
                          }
                          if ($oElementFont->hasAttribute('charset')) {
@@ -5494,7 +5504,7 @@ index d93a19168..e05ae9323 100644
                      $oText->setText($oSubSubElement->nodeValue);
                  }
              }
-@@ -1605,7 +2443,15 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1605,7 +2451,15 @@ class PowerPoint2007 implements ReaderInterface
              $hyperlink->setTooltip($element->getAttribute('tooltip'));
          }
          if ($element->hasAttribute('r:id') && isset($this->arrayRels[$this->fileRels][$element->getAttribute('r:id')]['Target'])) {
@@ -5511,7 +5521,7 @@ index d93a19168..e05ae9323 100644
          }
          if ($subElementExt = $xmlReader->getElement('a:extLst/a:ext', $element)) {
              if ($subElementExt->hasAttribute('uri') && $subElementExt->getAttribute('uri') == '{A12FA001-AC4F-418D-AE19-62706E023703}') {
-@@ -1647,13 +2493,49 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1647,13 +2501,49 @@ class PowerPoint2007 implements ReaderInterface
          $oColor->setRGB($oElement->getAttribute('val'));
          $oElementAlpha = $xmlReader->getElement('a:alpha', $oElement);
          if ($oElementAlpha instanceof DOMElement && $oElementAlpha->hasAttribute('val')) {
@@ -5563,7 +5573,7 @@ index d93a19168..e05ae9323 100644
      protected function loadStyleFill(XMLReader $xmlReader, DOMElement $oElement): ?Fill
      {
          // Gradient fill
-@@ -1662,19 +2544,67 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1662,19 +2552,67 @@ class PowerPoint2007 implements ReaderInterface
              $oFill = new Fill();
              $oFill->setFillType(Fill::FILL_GRADIENT_LINEAR);
  
@@ -5640,7 +5650,7 @@ index d93a19168..e05ae9323 100644
              }
  
              return $oFill;
-@@ -1694,6 +2624,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1694,6 +2632,16 @@ class PowerPoint2007 implements ReaderInterface
              return $oFill;
          }
  
@@ -5657,7 +5667,7 @@ index d93a19168..e05ae9323 100644
          return null;
      }
  
-@@ -1715,9 +2655,101 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1715,9 +2663,101 @@ class PowerPoint2007 implements ReaderInterface
          return null;
      }
  
@@ -5760,7 +5770,7 @@ index d93a19168..e05ae9323 100644
          if (false !== $sPart) {
              $xmlReader = new XMLReader();
              // @phpstan-ignore-next-line
-@@ -1738,11 +2770,16 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1738,11 +2778,16 @@ class PowerPoint2007 implements ReaderInterface
      /**
       * @param AbstractSlide|Note $oSlide
       * @param DOMNodeList<DOMNode> $oElements
@@ -5778,7 +5788,7 @@ index d93a19168..e05ae9323 100644
          foreach ($oElements as $oNode) {
              if (!($oNode instanceof DOMElement)) {
                  continue;
-@@ -1751,22 +2788,34 @@ class PowerPoint2007 implements ReaderInterface
+@@ -1751,22 +2796,34 @@ class PowerPoint2007 implements ReaderInterface
                  case 'p:graphicFrame':
                      if ($oSlide instanceof AbstractSlide) {
                          if ($document->elementExists('a:graphic/a:graphicData/a:tbl', $oNode)) {
@@ -6476,10 +6486,29 @@ index 6f2437f67..77074e051 100644
 +    }
  }
 diff --git a/src/PhpPresentation/Shape/Drawing/AbstractDrawingAdapter.php b/src/PhpPresentation/Shape/Drawing/AbstractDrawingAdapter.php
-index 31aef9e14..848222966 100644
+index 31aef9e14..3ba951e61 100644
 --- a/src/PhpPresentation/Shape/Drawing/AbstractDrawingAdapter.php
 +++ b/src/PhpPresentation/Shape/Drawing/AbstractDrawingAdapter.php
-@@ -38,4 +38,21 @@ abstract class AbstractDrawingAdapter extends AbstractGraphic
+@@ -24,6 +24,18 @@ use PhpOffice\PhpPresentation\Shape\AbstractGraphic;
+ 
+ abstract class AbstractDrawingAdapter extends AbstractGraphic
+ {
++    /**
++     * The geometry the drawing is drawn in.
++     *
++     * The name of a preset shape, as the format calls it: `rect` for the rectangle a
++     * drawing is drawn in unless it is told otherwise, and `ellipse` for the one a
++     * picture cropped to a shape is drawn in. The presets of
++     * {@see \PhpOffice\PhpPresentation\Shape\AutoShape} are the same names.
++     *
++     * @var string
++     */
++    protected $geometry = 'rect';
++
+     abstract public function getContents(): string;
+ 
+     abstract public function getExtension(): string;
+@@ -38,4 +50,33 @@ abstract class AbstractDrawingAdapter extends AbstractGraphic
       * @return self
       */
      abstract public function setPath(string $path);
@@ -6499,6 +6528,18 @@ index 31aef9e14..848222966 100644
 +        $name .= '.' . $extension;
 +
 +        return str_replace(' ', '_', $name);
++    }
++
++    public function getGeometry(): string
++    {
++        return $this->geometry;
++    }
++
++    public function setGeometry(string $geometry): self
++    {
++        $this->geometry = $geometry;
++
++        return $this;
 +    }
  }
 diff --git a/src/PhpPresentation/Shape/Drawing/Base64.php b/src/PhpPresentation/Shape/Drawing/Base64.php
@@ -13054,10 +13095,18 @@ index 869e0e2b4..e1855403d 100644
          $objWriter->startElement('a:fgClr');
  
 diff --git a/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php b/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php
-index 2f0544fd7..fe56cbb91 100644
+index 2f0544fd7..66cd10e35 100644
 --- a/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php
 +++ b/src/PhpPresentation/Writer/PowerPoint2007/AbstractSlide.php
-@@ -34,11 +34,14 @@ use PhpOffice\PhpPresentation\Shape\Drawing\AbstractDrawingAdapter;
+@@ -26,7 +26,6 @@ use PhpOffice\Common\Text;
+ use PhpOffice\Common\XMLWriter;
+ use PhpOffice\PhpPresentation\AbstractShape;
+ use PhpOffice\PhpPresentation\Exception\UndefinedChartTypeException;
+-use PhpOffice\PhpPresentation\Shape\AbstractGraphic;
+ use PhpOffice\PhpPresentation\Shape\AutoShape;
+ use PhpOffice\PhpPresentation\Shape\Chart as ShapeChart;
+ use PhpOffice\PhpPresentation\Shape\Comment;
+@@ -34,11 +33,14 @@ use PhpOffice\PhpPresentation\Shape\Drawing\AbstractDrawingAdapter;
  use PhpOffice\PhpPresentation\Shape\Drawing\File as ShapeDrawingFile;
  use PhpOffice\PhpPresentation\Shape\Drawing\Gd as ShapeDrawingGd;
  use PhpOffice\PhpPresentation\Shape\Group;
@@ -13072,7 +13121,7 @@ index 2f0544fd7..fe56cbb91 100644
  use PhpOffice\PhpPresentation\Shape\RichText\Paragraph;
  use PhpOffice\PhpPresentation\Shape\RichText\Run;
  use PhpOffice\PhpPresentation\Shape\RichText\TextElement;
-@@ -50,11 +53,99 @@ use PhpOffice\PhpPresentation\Style\Alignment;
+@@ -50,11 +52,99 @@ use PhpOffice\PhpPresentation\Style\Alignment;
  use PhpOffice\PhpPresentation\Style\Border;
  use PhpOffice\PhpPresentation\Style\Bullet;
  use PhpOffice\PhpPresentation\Style\Color;
@@ -13172,7 +13221,7 @@ index 2f0544fd7..fe56cbb91 100644
      /**
       * @return mixed
       */
-@@ -62,14 +153,14 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -62,14 +152,14 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
      {
          if (count($pSlideMaster->getShapeCollection()) > 0) {
              // Loop trough images and write relationships
@@ -13189,7 +13238,7 @@ index 2f0544fd7..fe56cbb91 100644
                      );
                      $shape->relationId = 'rId' . $relId;
                      ++$relId;
-@@ -79,36 +170,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -79,36 +169,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
                          $objWriter,
                          $relId,
                          'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart',
@@ -13227,7 +13276,16 @@ index 2f0544fd7..fe56cbb91 100644
                  }
              }
          }
-@@ -153,6 +218,48 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -140,7 +204,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+                 $this->writeShapeLine($objWriter, $shape, $shapeId);
+             } elseif ($shape instanceof ShapeChart) {
+                 $this->writeShapeChart($objWriter, $shape, $shapeId);
+-            } elseif ($shape instanceof AbstractGraphic) {
++            } elseif ($shape instanceof AbstractDrawingAdapter) {
+                 $this->writeShapePic($objWriter, $shape, $shapeId);
+             } elseif ($shape instanceof AutoShape) {
+                 $this->writeShapeAutoShape($objWriter, $shape, $shapeId);
+@@ -153,6 +217,48 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          }
      }
  
@@ -13276,7 +13334,7 @@ index 2f0544fd7..fe56cbb91 100644
      /**
       * Write txt.
       *
-@@ -172,10 +279,12 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -172,10 +278,12 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          } else {
              $objWriter->writeAttribute('name', $shape->getName());
          }
@@ -13289,7 +13347,7 @@ index 2f0544fd7..fe56cbb91 100644
          // > p:sp\p:nvSpPr
          $objWriter->endElement();
          // p:sp\p:nvSpPr\p:cNvSpPr
-@@ -245,7 +354,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -245,7 +353,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
              if (RichText::WRAP_SQUARE != $shape->getWrap()) {
                  $objWriter->writeAttribute('wrap', $shape->getWrap());
              }
@@ -13298,7 +13356,7 @@ index 2f0544fd7..fe56cbb91 100644
              if (RichText::OVERFLOW_OVERFLOW != $shape->getHorizontalOverflow()) {
                  $objWriter->writeAttribute('horzOverflow', $shape->getHorizontalOverflow());
              }
-@@ -337,6 +446,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -337,6 +445,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->writeAttribute('id', $shapeId);
          $objWriter->writeAttribute('name', $shape->getName());
          $objWriter->writeAttribute('descr', $shape->getDescription());
@@ -13307,7 +13365,7 @@ index 2f0544fd7..fe56cbb91 100644
          $objWriter->endElement();
          // p:graphicFrame/p:nvGraphicFramePr/p:cNvGraphicFramePr
          $objWriter->startElement('p:cNvGraphicFramePr');
-@@ -379,8 +490,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -379,8 +489,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->startElement('a:tbl');
          // p:graphicFrame/a:graphic/a:graphicData/a:tbl/a:tblPr
          $objWriter->startElement('a:tblPr');
@@ -13318,7 +13376,7 @@ index 2f0544fd7..fe56cbb91 100644
          $objWriter->endElement();
          // p:graphicFrame/a:graphic/a:graphicData/a:tbl/a:tblGrid
          $objWriter->startElement('a:tblGrid');
-@@ -482,17 +593,19 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -482,17 +592,19 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
                  $borderBottom = $currentCell->getBorders()->getBottom();
                  $borderDiagonalDown = $currentCell->getBorders()->getDiagonalDown();
                  $borderDiagonalUp = $currentCell->getBorders()->getDiagonalUp();
@@ -13341,7 +13399,7 @@ index 2f0544fd7..fe56cbb91 100644
                          $borderBottom = $nextCellBelow->getBorders()->getTop();
                      }
                  }
-@@ -504,7 +617,20 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -504,7 +616,20 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
                  $this->writeBorder($objWriter, $borderDiagonalDown, 'TlToBr');
                  $this->writeBorder($objWriter, $borderDiagonalUp, 'BlToTr');
                  // Fill
@@ -13363,7 +13421,7 @@ index 2f0544fd7..fe56cbb91 100644
                  $objWriter->endElement();
                  $objWriter->endElement();
              }
-@@ -524,13 +650,14 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -524,13 +649,14 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
       */
      protected function writeParagraphs(XMLWriter $objWriter, array $paragraphs): void
      {
@@ -13380,7 +13438,7 @@ index 2f0544fd7..fe56cbb91 100644
  
              // Loop trough rich text elements
              $elements = $paragraph->getRichTextElements();
-@@ -538,6 +665,21 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -538,6 +664,21 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
                  if ($element instanceof BreakElement) {
                      // a:br
                      $objWriter->writeElement('a:br', null);
@@ -13402,7 +13460,7 @@ index 2f0544fd7..fe56cbb91 100644
                  } elseif ($element instanceof Run || $element instanceof TextElement) {
                      // a:r
                      $objWriter->startElement('a:r');
-@@ -562,8 +704,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -562,8 +703,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
  
      /**
       * Write Paragraph Styles (a:pPr).
@@ -13414,7 +13472,7 @@ index 2f0544fd7..fe56cbb91 100644
      {
          $objWriter->startElement('a:pPr');
          $objWriter->writeAttribute('algn', $paragraph->getAlignment()->getHorizontal());
-@@ -623,9 +767,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -623,9 +766,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
                      // a:buAutoNum
                      $objWriter->startElement('a:buAutoNum');
                      $objWriter->writeAttribute('type', $paragraph->getBulletStyle()->getBulletNumericStyle());
@@ -13428,7 +13486,7 @@ index 2f0544fd7..fe56cbb91 100644
                      $objWriter->endElement();
                  }
              }
-@@ -643,7 +788,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -643,7 +787,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->startElement('a:rPr');
  
          // Lang
@@ -13437,7 +13495,7 @@ index 2f0544fd7..fe56cbb91 100644
  
          $objWriter->writeAttributeIf($element->getFont()->isBold(), 'b', '1');
          $objWriter->writeAttributeIf($element->getFont()->isItalic(), 'i', '1');
-@@ -689,10 +834,13 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -689,10 +833,13 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
              'pitchFamily',
              $element->getFont()->getPitchFamily()
          );
@@ -13453,7 +13511,7 @@ index 2f0544fd7..fe56cbb91 100644
          );
          $objWriter->endElement();
  
-@@ -716,7 +864,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -716,7 +863,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          // p:cNvPr
          $objWriter->startElement('p:cNvPr');
          $objWriter->writeAttribute('id', $shapeId);
@@ -13465,7 +13523,7 @@ index 2f0544fd7..fe56cbb91 100644
          $objWriter->endElement();
          // p:cNvCxnSpPr
          $objWriter->writeElement('p:cNvCxnSpPr', null);
-@@ -745,6 +896,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -745,6 +895,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
              $objWriter->writeAttribute('cy', CommonDrawing::pixelsToEmu($shape->getHeight()));
              $objWriter->endElement();
          } elseif ($shape->getWidth() < 0 && $shape->getHeight() < 0) {
@@ -13474,7 +13532,7 @@ index 2f0544fd7..fe56cbb91 100644
              // a:off
              $objWriter->startElement('a:off');
              $objWriter->writeAttribute('x', CommonDrawing::pixelsToEmu($shape->getOffsetX() + $shape->getWidth()));
-@@ -768,7 +921,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -768,7 +920,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
              $objWriter->writeAttribute('cy', CommonDrawing::pixelsToEmu(-$shape->getHeight()));
              $objWriter->endElement();
          } elseif ($shape->getWidth() < 0) {
@@ -13483,7 +13541,7 @@ index 2f0544fd7..fe56cbb91 100644
              // a:off
              $objWriter->startElement('a:off');
              $objWriter->writeAttribute('x', CommonDrawing::pixelsToEmu($shape->getOffsetX() + $shape->getWidth()));
-@@ -790,6 +943,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -790,6 +942,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
  
          $objWriter->endElement();
          $this->writeBorder($objWriter, $shape->getBorder(), '');
@@ -13491,7 +13549,7 @@ index 2f0544fd7..fe56cbb91 100644
          $objWriter->endElement();
          $objWriter->endElement();
      }
-@@ -1154,8 +1308,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1154,8 +1307,10 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          // p:sp\p:nvSpPr\p:cNvPr
          $objWriter->startElement('p:cNvPr');
          $objWriter->writeAttribute('id', $shapeId);
@@ -13504,7 +13562,7 @@ index 2f0544fd7..fe56cbb91 100644
          // p:sp\p:nvSpPr\p:cNvPr\
          $objWriter->endElement();
          // p:sp\p:nvSpPr\p:cNvSpPr
-@@ -1187,14 +1343,38 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1187,14 +1342,38 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          // p:sp\p:spPr\a:prstGeom
          $objWriter->startElement('a:prstGeom');
          $objWriter->writeAttribute('prst', $shape->getType());
@@ -13546,7 +13604,7 @@ index 2f0544fd7..fe56cbb91 100644
  
          // p:sp\p:spPr\
          $objWriter->endElement();
-@@ -1250,6 +1430,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1250,6 +1429,8 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->writeAttribute('id', $shapeId);
          $objWriter->writeAttribute('name', $shape->getName());
          $objWriter->writeAttribute('descr', $shape->getDescription());
@@ -13555,12 +13613,21 @@ index 2f0544fd7..fe56cbb91 100644
          $objWriter->endElement();
          // p:cNvGraphicFramePr
          $objWriter->writeElement('p:cNvGraphicFramePr', null);
-@@ -1316,15 +1498,19 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1297,7 +1478,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+      *
+      * @param XMLWriter $objWriter XML Writer
+      */
+-    protected function writeShapePic(XMLWriter $objWriter, AbstractGraphic $shape, int $shapeId): void
++    protected function writeShapePic(XMLWriter $objWriter, AbstractDrawingAdapter $shape, int $shapeId): void
+     {
+         // p:pic
+         $objWriter->startElement('p:pic');
+@@ -1316,15 +1497,19 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
              $this->writeHyperlink($objWriter, $shape);
          }
  
 -        if ($shape instanceof AbstractDrawingAdapter && $shape->getExtension() == 'svg') {
-+        $hasCreationId = $shape instanceof AbstractDrawingAdapter && $shape->getExtension() == 'svg';
++        $hasCreationId = $shape->getExtension() == 'svg';
 +        if ($hasCreationId || $shape->isDecorative()) {
              $objWriter->startElement('a:extLst');
 -            $objWriter->startElement('a:ext');
@@ -13583,7 +13650,25 @@ index 2f0544fd7..fe56cbb91 100644
              $objWriter->endElement();
          }
  
-@@ -1473,10 +1659,12 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1382,7 +1567,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+         $objWriter->startElement('a:blip');
+         $objWriter->writeAttribute('r:embed', $shape->relationId);
+ 
+-        if ($shape instanceof AbstractDrawingAdapter && $shape->getExtension() == 'svg') {
++        if ($shape->getExtension() == 'svg') {
+             // a:extLst
+             $objWriter->startElement('a:extLst');
+ 
+@@ -1445,7 +1630,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+ 
+         // a:prstGeom
+         $objWriter->startElement('a:prstGeom');
+-        $objWriter->writeAttribute('prst', 'rect');
++        $objWriter->writeAttribute('prst', $shape->getGeometry());
+         // // a:prstGeom/a:avLst
+         $objWriter->writeElement('a:avLst', null);
+         // ##a:prstGeom
+@@ -1473,10 +1658,12 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->startElement('p:nvGrpSpPr');
          // p:cNvPr
          $objWriter->startElement('p:cNvPr');
@@ -13598,7 +13683,7 @@ index 2f0544fd7..fe56cbb91 100644
          // p:cNvGrpSpPr
          $objWriter->writeElement('p:cNvGrpSpPr', null);
          // p:nvPr
-@@ -1486,6 +1674,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1486,6 +1673,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->startElement('p:grpSpPr');
          // a:xfrm
          $objWriter->startElement('a:xfrm');
@@ -13606,7 +13691,7 @@ index 2f0544fd7..fe56cbb91 100644
          // a:off
          $objWriter->startElement('a:off');
          $objWriter->writeAttribute('x', CommonDrawing::pixelsToEmu($group->getOffsetX()));
-@@ -1507,6 +1696,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1507,6 +1695,7 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
          $objWriter->writeAttribute('cy', CommonDrawing::pixelsToEmu($group->getExtentY()));
          $objWriter->endElement(); // a:chExt
          $objWriter->endElement(); // a:xfrm
@@ -13614,7 +13699,7 @@ index 2f0544fd7..fe56cbb91 100644
          $objWriter->endElement(); // p:grpSpPr
  
          $this->writeShapeCollection($objWriter, $group->getShapeCollection(), $shapeId);
-@@ -1561,6 +1751,16 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
+@@ -1561,6 +1750,16 @@ abstract class AbstractSlide extends AbstractDecoratorWriter
              // > p:bgPr
              $objWriter->endElement();
          }
