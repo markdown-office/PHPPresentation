@@ -1542,10 +1542,10 @@ index 000000000..56cccb05d
 +    }
 +}
 diff --git a/src/PhpPresentation/Reader/ODPresentation.php b/src/PhpPresentation/Reader/ODPresentation.php
-index ddf750dfc..3bf1956dc 100644
+index ddf750dfc..ed4279f2a 100644
 --- a/src/PhpPresentation/Reader/ODPresentation.php
 +++ b/src/PhpPresentation/Reader/ODPresentation.php
-@@ -24,23 +24,39 @@ use DateTime;
+@@ -24,23 +24,40 @@ use DateTime;
  use DOMElement;
  use PhpOffice\Common\Drawing as CommonDrawing;
  use PhpOffice\Common\XMLReader;
@@ -1560,6 +1560,7 @@ index ddf750dfc..3bf1956dc 100644
  use PhpOffice\PhpPresentation\Shape\Drawing\Base64;
  use PhpOffice\PhpPresentation\Shape\Drawing\Gd;
 +use PhpOffice\PhpPresentation\Shape\Group;
++use PhpOffice\PhpPresentation\Shape\Hyperlink;
 +use PhpOffice\PhpPresentation\Shape\Line;
 +use PhpOffice\PhpPresentation\Shape\Placeholder;
  use PhpOffice\PhpPresentation\Shape\RichText;
@@ -1585,7 +1586,7 @@ index ddf750dfc..3bf1956dc 100644
  use ZipArchive;
  
  /**
-@@ -48,6 +64,238 @@ use ZipArchive;
+@@ -48,6 +65,238 @@ use ZipArchive;
   */
  class ODPresentation implements ReaderInterface
  {
@@ -1824,7 +1825,7 @@ index ddf750dfc..3bf1956dc 100644
      /**
       * Output Object.
       *
-@@ -63,7 +311,33 @@ class ODPresentation implements ReaderInterface
+@@ -63,7 +312,33 @@ class ODPresentation implements ReaderInterface
      protected $oZip;
  
      /**
@@ -1859,7 +1860,7 @@ index ddf750dfc..3bf1956dc 100644
       */
      protected $arrayStyles = [];
  
-@@ -72,6 +346,13 @@ class ODPresentation implements ReaderInterface
+@@ -72,6 +347,13 @@ class ODPresentation implements ReaderInterface
       */
      protected $arrayCommonStyles = [];
  
@@ -1873,7 +1874,7 @@ index ddf750dfc..3bf1956dc 100644
      /**
       * @var XMLReader
       */
-@@ -175,6 +456,7 @@ class ODPresentation implements ReaderInterface
+@@ -175,6 +457,7 @@ class ODPresentation implements ReaderInterface
              '/office:document-meta/office:meta/dc:creator' => 'setLastModifiedBy',
              '/office:document-meta/office:meta/dc:title' => 'setTitle',
              '/office:document-meta/office:meta/dc:description' => 'setDescription',
@@ -1881,7 +1882,7 @@ index ddf750dfc..3bf1956dc 100644
              '/office:document-meta/office:meta/dc:subject' => 'setSubject',
              '/office:document-meta/office:meta/meta:keyword' => 'setKeywords',
              '/office:document-meta/office:meta/meta:creation-date' => 'setCreated',
-@@ -239,6 +521,18 @@ class ODPresentation implements ReaderInterface
+@@ -239,6 +522,18 @@ class ODPresentation implements ReaderInterface
                  $this->loadStyle($oElement);
              }
          }
@@ -1900,7 +1901,7 @@ index ddf750dfc..3bf1956dc 100644
          foreach ($this->oXMLReader->getElements('/office:document-content/office:body/office:presentation/draw:page') as $oElement) {
              if ($oElement instanceof DOMElement && 'draw:page' == $oElement->nodeName) {
                  $this->loadSlide($oElement);
-@@ -265,6 +559,9 @@ class ODPresentation implements ReaderInterface
+@@ -265,6 +560,9 @@ class ODPresentation implements ReaderInterface
  
          $nodeDrawingPageProps = $this->oXMLReader->getElement('style:drawing-page-properties', $nodeStyle);
          if ($nodeDrawingPageProps instanceof DOMElement) {
@@ -1910,7 +1911,7 @@ index ddf750dfc..3bf1956dc 100644
              // Read Background Color
              if ($nodeDrawingPageProps->hasAttribute('draw:fill-color') && 'solid' == $nodeDrawingPageProps->getAttribute('draw:fill')) {
                  $oBackground = new BackgroundColor();
-@@ -311,6 +608,92 @@ class ODPresentation implements ReaderInterface
+@@ -311,6 +609,92 @@ class ODPresentation implements ReaderInterface
                      $oShadow->setDistance(CommonDrawing::centimetersToPixels($distance));
                  }
              }
@@ -2003,7 +2004,7 @@ index ddf750dfc..3bf1956dc 100644
              // Read Fill
              if ($nodeGraphicProps->hasAttribute('draw:fill')) {
                  $value = $nodeGraphicProps->getAttribute('draw:fill');
-@@ -337,108 +720,46 @@ class ODPresentation implements ReaderInterface
+@@ -337,108 +721,46 @@ class ODPresentation implements ReaderInterface
  
          $nodeTextProperties = $this->oXMLReader->getElement('style:text-properties', $nodeStyle);
          if ($nodeTextProperties instanceof DOMElement) {
@@ -2139,7 +2140,7 @@ index ddf750dfc..3bf1956dc 100644
              }
              if ($nodeParagraphProps->hasAttribute('style:writing-mode')) {
                  switch ($nodeParagraphProps->getAttribute('style:writing-mode')) {
-@@ -451,7 +772,7 @@ class ODPresentation implements ReaderInterface
+@@ -451,7 +773,7 @@ class ODPresentation implements ReaderInterface
                      case 'rl-tb':
                      case 'tb-rl':
                      case 'rl':
@@ -2148,7 +2149,7 @@ index ddf750dfc..3bf1956dc 100644
  
                          break;
                      case 'tb':
-@@ -504,17 +825,47 @@ class ODPresentation implements ReaderInterface
+@@ -504,17 +826,47 @@ class ODPresentation implements ReaderInterface
              }
          }
  
@@ -2196,7 +2197,7 @@ index ddf750dfc..3bf1956dc 100644
          ];
  
          return true;
-@@ -523,6 +874,83 @@ class ODPresentation implements ReaderInterface
+@@ -523,6 +875,83 @@ class ODPresentation implements ReaderInterface
      /**
       * Read Slide.
       */
@@ -2280,37 +2281,55 @@ index ddf750dfc..3bf1956dc 100644
      protected function loadSlide(DOMElement $nodeSlide): bool
      {
          // Core
-@@ -535,39 +963,318 @@ class ODPresentation implements ReaderInterface
+@@ -535,173 +964,1123 @@ class ODPresentation implements ReaderInterface
              $keyStyle = $nodeSlide->getAttribute('draw:style-name');
              if (isset($this->arrayStyles[$keyStyle])) {
                  $this->oPhpPresentation->getActiveSlide()->setBackground($this->arrayStyles[$keyStyle]['background']);
-+                if (null !== $this->arrayStyles[$keyStyle]['visible']) {
-+                    $this->oPhpPresentation->getActiveSlide()->setIsVisible($this->arrayStyles[$keyStyle]['visible']);
-+                }
-             }
-         }
+-            }
+-        }
 -        foreach ($this->oXMLReader->getElements('draw:frame', $nodeSlide) as $oNodeFrame) {
 -            if ($oNodeFrame instanceof DOMElement) {
 -                if ($this->loadImages && $this->oXMLReader->getElement('draw:image', $oNodeFrame)) {
 -                    $this->loadShapeDrawing($oNodeFrame);
-+        $this->loadShapes($nodeSlide, $this->oPhpPresentation->getActiveSlide());
-+        $this->loadSlideNote($nodeSlide);
- 
+-
 -                    continue;
 -                }
 -                if ($this->oXMLReader->getElement('draw:text-box', $oNodeFrame)) {
 -                    $this->loadShapeRichText($oNodeFrame);
-+        return true;
-+    }
- 
+-
 -                    continue;
-+    /**
++                if (null !== $this->arrayStyles[$keyStyle]['visible']) {
++                    $this->oPhpPresentation->getActiveSlide()->setIsVisible($this->arrayStyles[$keyStyle]['visible']);
+                 }
+             }
+         }
++        $this->loadShapes($nodeSlide, $this->oPhpPresentation->getActiveSlide());
++        $this->loadSlideNote($nodeSlide);
+ 
+         return true;
+     }
+ 
+     /**
+-     * Read Shape Drawing.
 +     * Read the speaker notes of a slide, the text a producer puts in presentation:notes.
-+     */
+      */
+-    protected function loadShapeDrawing(DOMElement $oNodeFrame): void
 +    protected function loadSlideNote(DOMElement $nodeSlide): void
-+    {
+     {
+-        // Core
+-        $mimetype = '';
 +        $note = $this->oPhpPresentation->getActiveSlide()->getNote();
-+
+ 
+-        $oNodeImage = $this->oXMLReader->getElement('draw:image', $oNodeFrame);
+-        if ($oNodeImage instanceof DOMElement) {
+-            if ($oNodeImage->hasAttribute('loext:mime-type')) {
+-                $mimetype = $oNodeImage->getAttribute('loext:mime-type');
+-            }
+-            if ($oNodeImage->hasAttribute('xlink:href')) {
+-                $sFilename = $oNodeImage->getAttribute('xlink:href');
+-                // svm = StarView Metafile
+-                if ('svm' == pathinfo($sFilename, PATHINFO_EXTENSION)) {
+-                    return;
 +        foreach ($this->oXMLReader->getElements('presentation:notes/draw:frame', $nodeSlide) as $oNodeFrame) {
 +            if ($oNodeFrame instanceof DOMElement) {
 +                // An empty text box is the placeholder every slide carries whether it has notes
@@ -2319,11 +2338,13 @@ index ddf750dfc..3bf1956dc 100644
 +                if ($oNodeTextBox instanceof DOMElement && $oNodeTextBox->hasChildNodes()) {
 +                    $this->loadShapeRichText($oNodeFrame, $note);
                  }
+-                $imageFile = $this->oZip->getFromName($sFilename);
              }
          }
 +    }
  
--        return true;
+-        if (empty($imageFile)) {
+-            return;
 +    /**
 +     * Read the font a `style:text-properties` describes, out of its attributes alone -- which is
 +     * what lets a chart, whose styles live in a document of their own, read its fonts the same way.
@@ -2333,23 +2354,45 @@ index ddf750dfc..3bf1956dc 100644
 +        $oFont = new Font();
 +        if ($nodeTextProperties->hasAttribute('fo:color')) {
 +            $oFont->getColor()->setRGB(substr($nodeTextProperties->getAttribute('fo:color'), -6));
-+        }
+         }
 +        if ($nodeTextProperties->hasAttribute('fo:text-transform')) {
 +            switch ($nodeTextProperties->getAttribute('fo:text-transform')) {
 +                case 'none':
 +                    $oFont->setCapitalization(Font::CAPITALIZATION_NONE);
-+
+ 
+-        // Contents of file
+-        if (empty($mimetype)) {
+-            $shape = new Gd();
+-            $shape->setImageResource(imagecreatefromstring($imageFile));
+-        } else {
+-            $shape = new Base64();
+-            $shape->setData('data:' . $mimetype . ';base64,' . base64_encode($imageFile));
+-        }
 +                    break;
 +                case 'lowercase':
 +                    $oFont->setCapitalization(Font::CAPITALIZATION_SMALL);
-+
+ 
+-        $shape->getShadow()->setVisible(false);
+-        $shape->setName($oNodeFrame->hasAttribute('draw:name') ? $oNodeFrame->getAttribute('draw:name') : '');
+-        $shape->setDescription($oNodeFrame->hasAttribute('draw:name') ? $oNodeFrame->getAttribute('draw:name') : '');
+-        $shape->setResizeProportional(false);
+-        $shape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
+-        $shape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
+-        $shape->setResizeProportional(true);
+-        $shape->setOffsetX($oNodeFrame->hasAttribute('svg:x') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:x'), 0, -2)) : 0);
+-        $shape->setOffsetY($oNodeFrame->hasAttribute('svg:y') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:y'), 0, -2)) : 0);
 +                    break;
 +                case 'uppercase':
 +                    $oFont->setCapitalization(Font::CAPITALIZATION_ALL);
-+
+ 
+-        if ($oNodeFrame->hasAttribute('draw:style-name')) {
+-            $keyStyle = $oNodeFrame->getAttribute('draw:style-name');
+-            if (isset($this->arrayStyles[$keyStyle])) {
+-                $shape->setShadow($this->arrayStyles[$keyStyle]['shadow']);
+-                $shape->setFill($this->arrayStyles[$keyStyle]['fill']);
 +                    break;
-+            }
-+        }
+             }
+         }
 +        // Font Latin
 +        if ($nodeTextProperties->hasAttribute('fo:font-family')) {
 +            $oFont
@@ -2445,49 +2488,107 @@ index ddf750dfc..3bf1956dc 100644
 +            switch ($nodeTextProperties->getAttribute('style:script-type')) {
 +                case 'latin':
 +                    $oFont->setFormat(Font::FORMAT_LATIN);
-+
+ 
+-        $this->oPhpPresentation->getActiveSlide()->addShape($shape);
+-    }
+-
+-    /**
+-     * Read Shape RichText.
+-     */
+-    protected function loadShapeRichText(DOMElement $oNodeFrame): void
+-    {
+-        // Core
+-        $oShape = $this->oPhpPresentation->getActiveSlide()->createRichTextShape();
+-        $oShape->setParagraphs([]);
 +                    break;
 +                case 'asian':
 +                    $oFont->setFormat(Font::FORMAT_EAST_ASIAN);
-+
+ 
+-        $oShape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
+-        $oShape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
+-        $oShape->setOffsetX($oNodeFrame->hasAttribute('svg:x') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:x'), 0, -2)) : 0);
+-        $oShape->setOffsetY($oNodeFrame->hasAttribute('svg:y') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:y'), 0, -2)) : 0);
 +                    break;
 +                case 'complex':
 +                    $oFont->setFormat(Font::FORMAT_COMPLEX_SCRIPT);
-+
+ 
+-        foreach ($this->oXMLReader->getElements('draw:text-box/*', $oNodeFrame) as $oNodeParagraph) {
+-            $this->levelParagraph = 0;
+-            if ($oNodeParagraph instanceof DOMElement) {
+-                if ('text:p' == $oNodeParagraph->nodeName) {
+-                    $this->readParagraph($oShape, $oNodeParagraph);
+-                }
+-                if ('text:list' == $oNodeParagraph->nodeName) {
+-                    $this->readList($oShape, $oNodeParagraph);
+-                }
 +                    break;
-+            }
-+        }
-+
+             }
+         }
+ 
+-        if (count($oShape->getParagraphs()) > 0) {
+-            $oShape->setActiveParagraph(0);
+-        }
 +        return $oFont;
-+    }
-+
-+    /**
+     }
+ 
+     /**
+-     * Read Paragraph.
 +     * Put back together the language a text style splits: the whole tag where
 +     * `style:rfc-language-tag` holds it, else the language and the country. The family the style
 +     * is spelled for is asked first, and the other two after it.
-+     */
+      */
+-    protected function readParagraph(RichText $oShape, DOMElement $oNodeParent): void
 +    protected function loadLanguage(DOMElement $nodeTextProperties, string $format): ?string
-+    {
+     {
+-        $oParagraph = $oShape->createParagraph();
+-        if ($oNodeParent->hasAttribute('text:style-name')) {
+-            $keyStyle = $oNodeParent->getAttribute('text:style-name');
+-            if (isset($this->arrayStyles[$keyStyle])) {
+-                if (!empty($this->arrayStyles[$keyStyle]['spacingAfter'])) {
+-                    $oParagraph->setSpacingAfter($this->arrayStyles[$keyStyle]['spacingAfter']);
+-                }
+-                if (!empty($this->arrayStyles[$keyStyle]['spacingBefore'])) {
+-                    $oParagraph->setSpacingBefore($this->arrayStyles[$keyStyle]['spacingBefore']);
+-                }
+-                if (!empty($this->arrayStyles[$keyStyle]['lineSpacingMode'])) {
+-                    $oParagraph->setLineSpacingMode($this->arrayStyles[$keyStyle]['lineSpacingMode']);
+-                }
+-                if (!empty($this->arrayStyles[$keyStyle]['lineSpacing'])) {
+-                    $oParagraph->setLineSpacing($this->arrayStyles[$keyStyle]['lineSpacing']);
+-                }
+-            }
+-        }
+-        $oDomList = $this->oXMLReader->getElements('text:span', $oNodeParent);
+-        $oDomTextNodes = $this->oXMLReader->getElements('text()', $oNodeParent);
+-        foreach ($oDomTextNodes as $oDomTextNode) {
+-            if ('' != trim($oDomTextNode->nodeValue)) {
+-                $oTextRun = $oParagraph->createTextRun();
+-                $oTextRun->setText(trim($oDomTextNode->nodeValue));
 +        $families = [Font::FORMAT_LATIN => '', Font::FORMAT_EAST_ASIAN => '-asian', Font::FORMAT_COMPLEX_SCRIPT => '-complex'];
 +        $families = [$format => $families[$format] ?? ''] + $families;
 +        foreach ($families as $suffix) {
 +            $tag = $nodeTextProperties->getAttribute('style:rfc-language-tag' . $suffix);
 +            if ('' !== $tag) {
 +                return $tag;
-+            }
+             }
+-        }
+-        foreach ($oDomList as $oNodeRichTextElement) {
+-            if ($oNodeRichTextElement instanceof DOMElement) {
+-                $this->readParagraphItem($oParagraph, $oNodeRichTextElement);
 +            $prefix = '' === $suffix ? 'fo:' : 'style:';
 +            $language = $nodeTextProperties->getAttribute($prefix . 'language' . $suffix);
 +            if ('' !== $language && 'none' !== $language) {
 +                $country = $nodeTextProperties->getAttribute($prefix . 'country' . $suffix);
 +
 +                return $language . ('' !== $country && 'none' !== $country ? '-' . $country : '');
-+            }
-+        }
+             }
+         }
 +
 +        return null;
-+    }
-+
-+    /**
+     }
+ 
+     /**
+-     * Read Paragraph Item.
 +     * Read the shapes of a page or a group, in the order they are drawn.
 +     *
 +     * @param DOMElement $nodeParent the `draw:page` or the `draw:g`
@@ -2543,9 +2644,47 @@ index ddf750dfc..3bf1956dc 100644
 +        $oShape = new Group();
 +        $oShape->setDescription($this->loadShapeDescription($oNodeGroup));
 +        $oShape->setDecorative($this->loadShapeDecorative($oNodeGroup));
++        $this->loadShapeHyperlink($oNodeGroup, $oShape);
 +        $container->addShape($oShape);
 +
 +        $this->loadShapes($oNodeGroup, $oShape);
++    }
++
++    /**
++     * Read where a link goes, a slide of this presentation by its name or anything else by its
++     * address, and the title a `text:a` gives it.
++     *
++     * The title is `office:title`: ODF 1.3 Part 3 §19.387 makes it the short accessible description
++     * of the link, and its Appendix D.2 maps the alternative text of a link from another format to
++     * it. LibreOffice writes that text to `office:name` instead, which §19.380.9 keeps for the name
++     * of a link from an HTML document, so `office:name` is read when there is no `office:title`.
++     *
++     * @param DOMElement $node a `text:a`, or the `presentation:event-listener` of a shape
++     */
++    protected function loadHyperlink(DOMElement $node, Hyperlink $hyperlink): void
++    {
++        $href = $node->getAttribute('xlink:href');
++        if (0 === strpos($href, '#') && isset($this->arraySlideNumbers[substr($href, 1)])) {
++            $hyperlink->setSlideNumber($this->arraySlideNumbers[substr($href, 1)]);
++        } else {
++            $hyperlink->setUrl($href);
++        }
++        if ($node->hasAttribute('office:title')) {
++            $hyperlink->setTooltip($node->getAttribute('office:title'));
++        } elseif ($node->hasAttribute('office:name')) {
++            $hyperlink->setTooltip($node->getAttribute('office:name'));
++        }
++    }
++
++    /**
++     * Read the link a click on a shape follows, which ODF writes as an event listener of the shape.
++     */
++    protected function loadShapeHyperlink(DOMElement $oNodeShape, AbstractShape $shape): void
++    {
++        $oNodeListener = $this->oXMLReader->getElement('office:event-listeners/presentation:event-listener[@script:event-name="dom:click"][@xlink:href]', $oNodeShape);
++        if ($oNodeListener instanceof DOMElement) {
++            $this->loadHyperlink($oNodeListener, $shape->getHyperlink());
++        }
 +    }
 +
 +    /**
@@ -2592,73 +2731,73 @@ index ddf750dfc..3bf1956dc 100644
 +        }
 +
 +        return null;
-     }
- 
-     /**
-      * Read Shape Drawing.
-      */
--    protected function loadShapeDrawing(DOMElement $oNodeFrame): void
++    }
++
++    /**
++     * Read Shape Drawing.
++     */
 +    protected function loadShapeDrawing(DOMElement $oNodeFrame, ShapeContainerInterface $container): void
-     {
-         // Core
-         $mimetype = '';
- 
-         $oNodeImage = $this->oXMLReader->getElement('draw:image', $oNodeFrame);
-         if ($oNodeImage instanceof DOMElement) {
--            if ($oNodeImage->hasAttribute('loext:mime-type')) {
--                $mimetype = $oNodeImage->getAttribute('loext:mime-type');
--            }
++    {
++        // Core
++        $mimetype = '';
++
++        $oNodeImage = $this->oXMLReader->getElement('draw:image', $oNodeFrame);
++        if ($oNodeImage instanceof DOMElement) {
 +            // ODF 1.3 standardized the attribute LibreOffice wrote as loext:mime-type
 +            $mimetype = $oNodeImage->getAttribute('draw:mime-type') ?: $oNodeImage->getAttribute('loext:mime-type');
-             if ($oNodeImage->hasAttribute('xlink:href')) {
-                 $sFilename = $oNodeImage->getAttribute('xlink:href');
-                 // svm = StarView Metafile
-@@ -583,6 +1290,10 @@ class ODPresentation implements ReaderInterface
-         }
- 
-         // Contents of file
++            if ($oNodeImage->hasAttribute('xlink:href')) {
++                $sFilename = $oNodeImage->getAttribute('xlink:href');
++                // svm = StarView Metafile
++                if ('svm' == pathinfo($sFilename, PATHINFO_EXTENSION)) {
++                    return;
++                }
++                $imageFile = $this->oZip->getFromName($sFilename);
++            }
++        }
++
++        if (empty($imageFile)) {
++            return;
++        }
++
++        // Contents of file
 +        if (empty($mimetype)) {
 +            // a metafile is no image GD can draw, and is kept as it is
 +            $mimetype = (string) Metafile::getMimeType($imageFile);
 +        }
-         if (empty($mimetype)) {
-             $shape = new Gd();
-             $shape->setImageResource(imagecreatefromstring($imageFile));
-@@ -593,38 +1304,643 @@ class ODPresentation implements ReaderInterface
- 
-         $shape->getShadow()->setVisible(false);
-         $shape->setName($oNodeFrame->hasAttribute('draw:name') ? $oNodeFrame->getAttribute('draw:name') : '');
--        $shape->setDescription($oNodeFrame->hasAttribute('draw:name') ? $oNodeFrame->getAttribute('draw:name') : '');
++        if (empty($mimetype)) {
++            $shape = new Gd();
++            $shape->setImageResource(imagecreatefromstring($imageFile));
++        } else {
++            $shape = new Base64();
++            $shape->setData('data:' . $mimetype . ';base64,' . base64_encode($imageFile));
++        }
++
++        $shape->getShadow()->setVisible(false);
++        $shape->setName($oNodeFrame->hasAttribute('draw:name') ? $oNodeFrame->getAttribute('draw:name') : '');
 +        $shape->setDescription($this->loadShapeDescription($oNodeFrame));
 +        $shape->setDecorative($this->loadShapeDecorative($oNodeFrame));
-         $shape->setResizeProportional(false);
-         $shape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
-         $shape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
-         $shape->setResizeProportional(true);
--        $shape->setOffsetX($oNodeFrame->hasAttribute('svg:x') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:x'), 0, -2)) : 0);
--        $shape->setOffsetY($oNodeFrame->hasAttribute('svg:y') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:y'), 0, -2)) : 0);
++        $this->loadShapeHyperlink($oNodeFrame, $shape);
++        $shape->setResizeProportional(false);
++        $shape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
++        $shape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
++        $shape->setResizeProportional(true);
 +        $this->loadShapeOffset($shape, $oNodeFrame);
- 
--        if ($oNodeFrame->hasAttribute('draw:style-name')) {
--            $keyStyle = $oNodeFrame->getAttribute('draw:style-name');
++
 +        if ($oNodeFrame->hasAttribute('draw:style-name') || $oNodeFrame->hasAttribute('presentation:style-name')) {
 +            $keyStyle = $this->getShapeStyleName($oNodeFrame);
-             if (isset($this->arrayStyles[$keyStyle])) {
-                 $shape->setShadow($this->arrayStyles[$keyStyle]['shadow']);
-                 $shape->setFill($this->arrayStyles[$keyStyle]['fill']);
++            if (isset($this->arrayStyles[$keyStyle])) {
++                $shape->setShadow($this->arrayStyles[$keyStyle]['shadow']);
++                $shape->setFill($this->arrayStyles[$keyStyle]['fill']);
 +                $this->applyShapeBorder($shape, $this->arrayStyles[$keyStyle]['border']);
-             }
-         }
- 
--        $this->oPhpPresentation->getActiveSlide()->addShape($shape);
++            }
++        }
++
 +        $container->addShape($shape);
-     }
- 
-     /**
--     * Read Shape RichText.
++    }
++
++    /**
 +     * Put the border a graphic style names on a shape, where the style named one.
-      */
--    protected function loadShapeRichText(DOMElement $oNodeFrame): void
++     */
 +    protected function applyShapeBorder(AbstractShape $shape, ?Border $border): void
 +    {
 +        if (null === $border) {
@@ -2686,6 +2825,7 @@ index ddf750dfc..3bf1956dc 100644
 +        $shape = new Line($point('svg:x1'), $point('svg:y1'), $point('svg:x2'), $point('svg:y2'));
 +        $shape->setDescription($this->loadShapeDescription($oNodeLine));
 +        $shape->setDecorative($this->loadShapeDecorative($oNodeLine));
++        $this->loadShapeHyperlink($oNodeLine, $shape);
 +
 +        $container->addShape($shape);
 +    }
@@ -3216,19 +3356,17 @@ index ddf750dfc..3bf1956dc 100644
 +     *                                                the frame was read out of the slide note
 +     */
 +    protected function loadShapeRichText(DOMElement $oNodeFrame, ?ShapeContainerInterface $container = null): void
-     {
-         // Core
--        $oShape = $this->oPhpPresentation->getActiveSlide()->createRichTextShape();
++    {
++        // Core
 +        $oShape = new RichText();
 +        ($container ?? $this->oPhpPresentation->getActiveSlide())->addShape($oShape);
-         $oShape->setParagraphs([]);
- 
++        $oShape->setParagraphs([]);
++
 +        $oShape->setDescription($this->loadShapeDescription($oNodeFrame));
 +        $oShape->setDecorative($this->loadShapeDecorative($oNodeFrame));
-         $oShape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
-         $oShape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
--        $oShape->setOffsetX($oNodeFrame->hasAttribute('svg:x') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:x'), 0, -2)) : 0);
--        $oShape->setOffsetY($oNodeFrame->hasAttribute('svg:y') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:y'), 0, -2)) : 0);
++        $this->loadShapeHyperlink($oNodeFrame, $oShape);
++        $oShape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
++        $oShape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
 +        $this->loadShapeOffset($oShape, $oNodeFrame);
 +        $placeholderType = self::PLACEHOLDER_TYPE[$oNodeFrame->getAttribute('presentation:class')] ?? null;
 +        if (null !== $placeholderType) {
@@ -3276,39 +3414,73 @@ index ddf750dfc..3bf1956dc 100644
 +                }
 +            }
 +        }
- 
-         foreach ($this->oXMLReader->getElements('draw:text-box/*', $oNodeFrame) as $oNodeParagraph) {
-             $this->levelParagraph = 0;
-@@ -646,12 +1962,18 @@ class ODPresentation implements ReaderInterface
-     /**
-      * Read Paragraph.
-      */
--    protected function readParagraph(RichText $oShape, DOMElement $oNodeParent): void
++
++        foreach ($this->oXMLReader->getElements('draw:text-box/*', $oNodeFrame) as $oNodeParagraph) {
++            $this->levelParagraph = 0;
++            if ($oNodeParagraph instanceof DOMElement) {
++                if ('text:p' == $oNodeParagraph->nodeName) {
++                    $this->readParagraph($oShape, $oNodeParagraph);
++                }
++                if ('text:list' == $oNodeParagraph->nodeName) {
++                    $this->readList($oShape, $oNodeParagraph);
++                }
++            }
++        }
++
++        if (count($oShape->getParagraphs()) > 0) {
++            $oShape->setActiveParagraph(0);
++        }
++    }
++
++    /**
++     * Read Paragraph.
++     */
 +    /**
 +     * @param Cell|RichText $oShape anything that opens a paragraph: a text shape or a table cell
 +     */
 +    protected function readParagraph($oShape, DOMElement $oNodeParent): void
-     {
-         $oParagraph = $oShape->createParagraph();
-         if ($oNodeParent->hasAttribute('text:style-name')) {
-             $keyStyle = $oNodeParent->getAttribute('text:style-name');
-             if (isset($this->arrayStyles[$keyStyle])) {
++    {
++        $oParagraph = $oShape->createParagraph();
++        if ($oNodeParent->hasAttribute('text:style-name')) {
++            $keyStyle = $oNodeParent->getAttribute('text:style-name');
++            if (isset($this->arrayStyles[$keyStyle])) {
 +                if (null !== $this->arrayStyles[$keyStyle]['alignment']) {
 +                    $oParagraph->setAlignment($this->arrayStyles[$keyStyle]['alignment']);
 +                }
-                 if (!empty($this->arrayStyles[$keyStyle]['spacingAfter'])) {
-                     $oParagraph->setSpacingAfter($this->arrayStyles[$keyStyle]['spacingAfter']);
-                 }
-@@ -662,7 +1984,7 @@ class ODPresentation implements ReaderInterface
-                     $oParagraph->setLineSpacingMode($this->arrayStyles[$keyStyle]['lineSpacingMode']);
-                 }
-                 if (!empty($this->arrayStyles[$keyStyle]['lineSpacing'])) {
--                    $oParagraph->setLineSpacing($this->arrayStyles[$keyStyle]['lineSpacing']);
++                if (!empty($this->arrayStyles[$keyStyle]['spacingAfter'])) {
++                    $oParagraph->setSpacingAfter($this->arrayStyles[$keyStyle]['spacingAfter']);
++                }
++                if (!empty($this->arrayStyles[$keyStyle]['spacingBefore'])) {
++                    $oParagraph->setSpacingBefore($this->arrayStyles[$keyStyle]['spacingBefore']);
++                }
++                if (!empty($this->arrayStyles[$keyStyle]['lineSpacingMode'])) {
++                    $oParagraph->setLineSpacingMode($this->arrayStyles[$keyStyle]['lineSpacingMode']);
++                }
++                if (!empty($this->arrayStyles[$keyStyle]['lineSpacing'])) {
 +                    $oParagraph->setLineSpacing((int) $this->arrayStyles[$keyStyle]['lineSpacing']);
-                 }
-             }
-         }
-@@ -689,19 +2011,39 @@ class ODPresentation implements ReaderInterface
++                }
++            }
++        }
++        $oDomList = $this->oXMLReader->getElements('text:span', $oNodeParent);
++        $oDomTextNodes = $this->oXMLReader->getElements('text()', $oNodeParent);
++        foreach ($oDomTextNodes as $oDomTextNode) {
++            if ('' != trim($oDomTextNode->nodeValue)) {
++                $oTextRun = $oParagraph->createTextRun();
++                $oTextRun->setText(trim($oDomTextNode->nodeValue));
++            }
++        }
++        foreach ($oDomList as $oNodeRichTextElement) {
++            if ($oNodeRichTextElement instanceof DOMElement) {
++                $this->readParagraphItem($oParagraph, $oNodeRichTextElement);
++            }
++        }
++    }
++
++    /**
++     * Read Paragraph Item.
+      */
+     protected function readParagraphItem(Paragraph $oParagraph, DOMElement $oNodeParent): void
+     {
          if ($this->oXMLReader->elementExists('text:line-break', $oNodeParent)) {
              $oParagraph->createBreak();
          } else {
@@ -3337,12 +3509,7 @@ index ddf750dfc..3bf1956dc 100644
                  $oTextRun->setText($oTextRunLink->nodeValue);
                  if ($oTextRunLink->hasAttribute('xlink:href')) {
 -                    $oTextRun->getHyperlink()->setUrl($oTextRunLink->getAttribute('xlink:href'));
-+                    $href = $oTextRunLink->getAttribute('xlink:href');
-+                    if (0 === strpos($href, '#') && isset($this->arraySlideNumbers[substr($href, 1)])) {
-+                        $oTextRun->getHyperlink()->setSlideNumber($this->arraySlideNumbers[substr($href, 1)]);
-+                    } else {
-+                        $oTextRun->getHyperlink()->setUrl($href);
-+                    }
++                    $this->loadHyperlink($oTextRunLink, $oTextRun->getHyperlink());
                  }
 +            } elseif ($oNodeField instanceof DOMElement) {
 +                // the span holds the field, and the field holds the text it stands in for
@@ -3350,7 +3517,7 @@ index ddf750dfc..3bf1956dc 100644
              } else {
                  $oTextRun->setText($oNodeParent->nodeValue);
              }
-@@ -750,6 +2092,122 @@ class ODPresentation implements ReaderInterface
+@@ -750,6 +2129,123 @@ class ODPresentation implements ReaderInterface
      /**
       * Load file 'styles.xml'.
       */
@@ -3373,6 +3540,7 @@ index ddf750dfc..3bf1956dc 100644
 +        $container->addShape($oShape);
 +        $oShape->setDescription($this->loadShapeDescription($oNodeFrame));
 +        $oShape->setDecorative($this->loadShapeDecorative($oNodeFrame));
++        $this->loadShapeHyperlink($oNodeFrame, $oShape);
 +        $oShape->setWidth($oNodeFrame->hasAttribute('svg:width') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:width'), 0, -2)) : 0);
 +        $oShape->setHeight($oNodeFrame->hasAttribute('svg:height') ? CommonDrawing::centimetersToPixels((float) substr($oNodeFrame->getAttribute('svg:height'), 0, -2)) : 0);
 +        $this->loadShapeOffset($oShape, $oNodeFrame);
@@ -3473,7 +3641,7 @@ index ddf750dfc..3bf1956dc 100644
      protected function loadStylesFile(): void
      {
          foreach ($this->oXMLReader->getElements('/office:document-styles/office:styles/*') as $oElement) {
-@@ -762,6 +2220,24 @@ class ODPresentation implements ReaderInterface
+@@ -762,6 +2258,24 @@ class ODPresentation implements ReaderInterface
          }
      }
  
@@ -8805,7 +8973,7 @@ index 7b3f58e4e..c1eea1653 100644
       * @return Chart[]
       */
 diff --git a/src/PhpPresentation/Writer/ODPresentation/Content.php b/src/PhpPresentation/Writer/ODPresentation/Content.php
-index ef4272314..1bd71c960 100644
+index ef4272314..e350a5244 100644
 --- a/src/PhpPresentation/Writer/ODPresentation/Content.php
 +++ b/src/PhpPresentation/Writer/ODPresentation/Content.php
 @@ -24,15 +24,21 @@ use PhpOffice\Common\Adapter\Zip\ZipInterface;
@@ -9625,7 +9793,7 @@ index ef4272314..1bd71c960 100644
  
                  // Loop trough rich text elements
                  $richtexts = $paragraph->getRichTextElements();
-@@ -551,15 +749,17 @@ class Content extends AbstractDecoratorWriter
+@@ -551,15 +749,12 @@ class Content extends AbstractDecoratorWriter
                          // text:span
                          $objWriter->startElement('text:span');
                          if ($richtext instanceof Run) {
@@ -9633,19 +9801,19 @@ index ef4272314..1bd71c960 100644
 +                            $objWriter->writeAttribute('text:style-name', $this->getAutomaticStyleName($richtext));
                          }
                          if (true === $richtext->hasHyperlink() && '' != $richtext->getHyperlink()->getUrl()) {
-                             // text:a
-                             $objWriter->startElement('text:a');
-                             $objWriter->writeAttribute('xlink:type', 'simple');
+-                            // text:a
+-                            $objWriter->startElement('text:a');
+-                            $objWriter->writeAttribute('xlink:type', 'simple');
 -                            $objWriter->writeAttribute('xlink:href', $richtext->getHyperlink()->getUrl());
-+                            $objWriter->writeAttribute('xlink:href', $this->getHyperlinkHref($richtext->getHyperlink()));
-                             $objWriter->text($richtext->getText());
-                             $objWriter->endElement();
+-                            $objWriter->text($richtext->getText());
+-                            $objWriter->endElement();
++                            $this->writeTextHyperlink($objWriter, $richtext->getHyperlink(), $richtext->getText());
 +                        } elseif (null !== ($field = $this->getFieldElement($richtext, $fieldName))) {
 +                            $objWriter->writeElement($field, $richtext->getText());
                          } else {
                              $objWriter->text($richtext->getText());
                          }
-@@ -577,15 +777,14 @@ class Content extends AbstractDecoratorWriter
+@@ -577,15 +772,14 @@ class Content extends AbstractDecoratorWriter
                  //===============================================
                  // Bullet list
                  //===============================================
@@ -9666,7 +9834,7 @@ index ef4272314..1bd71c960 100644
                      if ($iCstShpLastBulletLvl == $paragraph->getAlignment()->getLevel()) {
                          // text:list-item
                          $objWriter->endElement();
-@@ -604,7 +803,7 @@ class Content extends AbstractDecoratorWriter
+@@ -604,7 +798,7 @@ class Content extends AbstractDecoratorWriter
                  ++$paragraphId;
                  // text:p
                  $objWriter->startElement('text:p');
@@ -9675,7 +9843,7 @@ index ef4272314..1bd71c960 100644
  
                  // Loop trough rich text elements
                  $richtexts = $paragraph->getRichTextElements();
-@@ -615,15 +814,17 @@ class Content extends AbstractDecoratorWriter
+@@ -615,15 +809,12 @@ class Content extends AbstractDecoratorWriter
                          // text:span
                          $objWriter->startElement('text:span');
                          if ($richtext instanceof Run) {
@@ -9683,19 +9851,19 @@ index ef4272314..1bd71c960 100644
 +                            $objWriter->writeAttribute('text:style-name', $this->getAutomaticStyleName($richtext));
                          }
                          if (true === $richtext->hasHyperlink() && '' != $richtext->getHyperlink()->getUrl()) {
-                             // text:a
-                             $objWriter->startElement('text:a');
-                             $objWriter->writeAttribute('xlink:type', 'simple');
+-                            // text:a
+-                            $objWriter->startElement('text:a');
+-                            $objWriter->writeAttribute('xlink:type', 'simple');
 -                            $objWriter->writeAttribute('xlink:href', $richtext->getHyperlink()->getUrl());
-+                            $objWriter->writeAttribute('xlink:href', $this->getHyperlinkHref($richtext->getHyperlink()));
-                             $objWriter->text($richtext->getText());
-                             $objWriter->endElement();
+-                            $objWriter->text($richtext->getText());
+-                            $objWriter->endElement();
++                            $this->writeTextHyperlink($objWriter, $richtext->getHyperlink(), $richtext->getText());
 +                        } elseif (null !== ($field = $this->getFieldElement($richtext, $fieldName))) {
 +                            $objWriter->writeElement($field, $richtext->getText());
                          } else {
                              $objWriter->text($richtext->getText());
                          }
-@@ -639,12 +840,12 @@ class Content extends AbstractDecoratorWriter
+@@ -639,12 +830,12 @@ class Content extends AbstractDecoratorWriter
                  }
                  $objWriter->endElement();
              }
@@ -9711,7 +9879,7 @@ index ef4272314..1bd71c960 100644
              for ($iInc = $iCstShpLastBulletLvl; $iInc >= 0; --$iInc) {
                  // text:list-item
                  $objWriter->endElement();
-@@ -655,10 +856,72 @@ class Content extends AbstractDecoratorWriter
+@@ -655,10 +846,72 @@ class Content extends AbstractDecoratorWriter
  
          // > draw:text-box
          $objWriter->endElement();
@@ -9784,7 +9952,7 @@ index ef4272314..1bd71c960 100644
      /**
       * Write Comment.
       */
-@@ -684,12 +947,15 @@ class Content extends AbstractDecoratorWriter
+@@ -684,12 +937,15 @@ class Content extends AbstractDecoratorWriter
      {
          // draw:line
          $objWriter->startElement('draw:line');
@@ -9801,7 +9969,7 @@ index ef4272314..1bd71c960 100644
          // text:p
          $objWriter->writeElement('text:p');
  
-@@ -697,39 +963,144 @@ class Content extends AbstractDecoratorWriter
+@@ -697,16 +953,136 @@ class Content extends AbstractDecoratorWriter
      }
  
      /**
@@ -9826,9 +9994,7 @@ index ef4272314..1bd71c960 100644
 +        $this->writeShapePlacement($objWriter, $shape);
 +        $this->writeShapeDescription($objWriter, $shape);
 +        $this->writeShapeHyperlink($objWriter, $shape);
- 
--        $arrayRows = $shape->getRows();
--        if (!empty($arrayRows)) {
++
 +        // text:p
 +        $objWriter->startElement('text:p');
 +        $objWriter->writeAttribute('text:style-name', $this->getAutomaticStyleName($this));
@@ -9891,6 +10057,27 @@ index ef4272314..1bd71c960 100644
 +    }
 +
 +    /**
++     * Write a run of text that is a hyperlink, with its tooltip as the title of the link.
++     *
++     * The title is `office:title`, the short accessible description ODF 1.3 Part 3 §19.387 gives a
++     * link and the attribute its Appendix D.2 maps the alternative text of a link to. It is not
++     * `office:name`, where LibreOffice writes it: §19.380.9 keeps that for the name of a link from
++     * an HTML document. The Reader reads both.
++     */
++    protected function writeTextHyperlink(XMLWriter $objWriter, Hyperlink $hyperlink, string $text): void
++    {
++        // text:a
++        $objWriter->startElement('text:a');
++        $objWriter->writeAttribute('xlink:type', 'simple');
++        $objWriter->writeAttribute('xlink:href', $this->getHyperlinkHref($hyperlink));
++        if ('' !== $hyperlink->getTooltip()) {
++            $objWriter->writeAttribute('office:title', $hyperlink->getTooltip());
++        }
++        $objWriter->text($text);
++        $objWriter->endElement();
++    }
++
++    /**
 +     * The target of a hyperlink, in the terms ODF addresses it.
 +     *
 +     * A link to another slide is stored as the PowerPoint action string `ppaction://hlinksldjump`,
@@ -9923,10 +10110,10 @@ index ef4272314..1bd71c960 100644
 +        $objWriter->writeAttribute('svg:width', Text::numberFormat(CommonDrawing::pixelsToCentimeters((int) $shape->getWidth()), 3) . 'cm');
 +
 +        $this->writeShapeDecorative($objWriter, $shape);
-+
-+        $arrayRows = $shape->getRows();
-+        if (!empty($arrayRows)) {
-             $firstRow = reset($arrayRows);
+ 
+         $arrayRows = $shape->getRows();
+         if (!empty($arrayRows)) {
+@@ -714,22 +1090,28 @@ class Content extends AbstractDecoratorWriter
              $arrayCells = $firstRow->getCells();
              // table:table
              $objWriter->startElement('table:table');
@@ -9959,7 +10146,7 @@ index ef4272314..1bd71c960 100644
                          if ($shapeCell->getColspan() > 1) {
                              $objWriter->writeAttribute('table:number-columns-spanned', $shapeCell->getColspan());
                              $numColspan = $shapeCell->getColspan() - 1;
-@@ -745,13 +1116,13 @@ class Content extends AbstractDecoratorWriter
+@@ -745,15 +1127,10 @@ class Content extends AbstractDecoratorWriter
                                      // text:span
                                      $objWriter->startElement('text:span');
                                      if ($shapeRichText instanceof Run) {
@@ -9967,15 +10154,17 @@ index ef4272314..1bd71c960 100644
 +                                        $objWriter->writeAttribute('text:style-name', $this->getAutomaticStyleName($shapeRichText));
                                      }
                                      if (true === $shapeRichText->hasHyperlink() && '' !== $shapeRichText->getHyperlink()->getUrl()) {
-                                         // text:a
-                                         $objWriter->startElement('text:a');
-                                         $objWriter->writeAttribute('xlink:type', 'simple');
+-                                        // text:a
+-                                        $objWriter->startElement('text:a');
+-                                        $objWriter->writeAttribute('xlink:type', 'simple');
 -                                        $objWriter->writeAttribute('xlink:href', $shapeRichText->getHyperlink()->getUrl());
-+                                        $objWriter->writeAttribute('xlink:href', $this->getHyperlinkHref($shapeRichText->getHyperlink()));
-                                         $objWriter->text($shapeRichText->getText());
-                                         $objWriter->endElement();
+-                                        $objWriter->text($shapeRichText->getText());
+-                                        $objWriter->endElement();
++                                        $this->writeTextHyperlink($objWriter, $shapeRichText->getHyperlink(), $shapeRichText->getText());
                                      } else {
-@@ -786,6 +1157,10 @@ class Content extends AbstractDecoratorWriter
+                                         $objWriter->text($shapeRichText->getText());
+                                     }
+@@ -786,6 +1163,10 @@ class Content extends AbstractDecoratorWriter
              // > table:table
              $objWriter->endElement();
          }
@@ -9986,7 +10175,7 @@ index ef4272314..1bd71c960 100644
          // > draw:frame
          $objWriter->endElement();
      }
-@@ -807,6 +1182,8 @@ class Content extends AbstractDecoratorWriter
+@@ -807,6 +1188,8 @@ class Content extends AbstractDecoratorWriter
          $objWriter->writeAttribute('svg:height', Text::numberFormat(CommonDrawing::pixelsToCentimeters((int) $shape->getHeight()), 3) . 'cm');
          $objWriter->writeAttribute('svg:width', Text::numberFormat(CommonDrawing::pixelsToCentimeters((int) $shape->getWidth()), 3) . 'cm');
  
@@ -9995,7 +10184,7 @@ index ef4272314..1bd71c960 100644
          // draw:object
          $objWriter->startElement('draw:object');
          $objWriter->writeAttribute('xlink:href', './Object ' . $this->shapeId);
-@@ -815,6 +1192,10 @@ class Content extends AbstractDecoratorWriter
+@@ -815,6 +1198,10 @@ class Content extends AbstractDecoratorWriter
  
          // > draw:object
          $objWriter->endElement();
@@ -10006,7 +10195,7 @@ index ef4272314..1bd71c960 100644
          // > draw:frame
          $objWriter->endElement();
      }
-@@ -827,6 +1208,10 @@ class Content extends AbstractDecoratorWriter
+@@ -827,6 +1214,10 @@ class Content extends AbstractDecoratorWriter
          // draw:g
          $objWriter->startElement('draw:g');
  
@@ -10017,7 +10206,7 @@ index ef4272314..1bd71c960 100644
          $shapes = $group->getShapeCollection();
          foreach ($shapes as $shape) {
              // Increment $this->shapeId
-@@ -845,6 +1230,8 @@ class Content extends AbstractDecoratorWriter
+@@ -845,6 +1236,8 @@ class Content extends AbstractDecoratorWriter
                  $this->writeShapeDrawing($objWriter, $shape);
              } elseif ($shape instanceof Group) {
                  $this->writeShapeGroup($objWriter, $shape);
@@ -10026,7 +10215,7 @@ index ef4272314..1bd71c960 100644
              }
          }
  
-@@ -852,129 +1239,389 @@ class Content extends AbstractDecoratorWriter
+@@ -852,129 +1245,389 @@ class Content extends AbstractDecoratorWriter
      }
  
      /**
@@ -10089,21 +10278,9 @@ index ef4272314..1bd71c960 100644
 +
 +    /**
 +     * Name the automatic style a run wears, sharing one with every run that writes the same thing.
-      */
--    protected function writeTxtStyle(XMLWriter $objWriter, RichText $shape): void
++     */
 +    protected function addTextStyle(Run $run): string
-     {
--        // style:style
--        $objWriter->startElement('style:style');
--        $objWriter->writeAttribute('style:name', 'gr' . $this->shapeId);
--        $objWriter->writeAttribute('style:family', 'graphic');
--        $objWriter->writeAttribute('style:parent-style-name', 'standard');
--        // style:graphic-properties
--        $objWriter->startElement('style:graphic-properties');
--        $objWriter->writeAttribute('style:mirror', 'none');
--        $this->writeStylePartShadow($objWriter, $shape->getShadow());
--        if (is_bool($shape->hasAutoShrinkVertical())) {
--            $objWriter->writeAttribute('draw:auto-grow-height', var_export($shape->hasAutoShrinkVertical(), true));
++    {
 +        return $this->shareAutomaticStyle('text', function (XMLWriter $objWriter) use ($run): void {
 +            $this->writeTextStyleBody($objWriter, $run);
 +        }, $run);
@@ -10123,9 +10300,21 @@ index ef4272314..1bd71c960 100644
 +     * @param null|object              $owner     the object wearing the style, which the second pass
 +     *                                            looks the name up by, or null when the caller keeps
 +     *                                            the name itself
-+     */
+      */
+-    protected function writeTxtStyle(XMLWriter $objWriter, RichText $shape): void
 +    private function shareAutomaticStyle(string $family, callable $writeBody, ?object $owner = null): string
-+    {
+     {
+-        // style:style
+-        $objWriter->startElement('style:style');
+-        $objWriter->writeAttribute('style:name', 'gr' . $this->shapeId);
+-        $objWriter->writeAttribute('style:family', 'graphic');
+-        $objWriter->writeAttribute('style:parent-style-name', 'standard');
+-        // style:graphic-properties
+-        $objWriter->startElement('style:graphic-properties');
+-        $objWriter->writeAttribute('style:mirror', 'none');
+-        $this->writeStylePartShadow($objWriter, $shape->getShadow());
+-        if (is_bool($shape->hasAutoShrinkVertical())) {
+-            $objWriter->writeAttribute('draw:auto-grow-height', var_export($shape->hasAutoShrinkVertical(), true));
 +        $bodyWriter = new XMLWriter();
 +        $writeBody($bodyWriter);
 +
@@ -10495,7 +10684,7 @@ index ef4272314..1bd71c960 100644
  
              $richtexts = $paragraph->getRichTextElements();
              $richtextId = 0;
-@@ -983,175 +1630,222 @@ class Content extends AbstractDecoratorWriter
+@@ -983,175 +1636,222 @@ class Content extends AbstractDecoratorWriter
                  // Not a line break
                  if ($richtext instanceof Run) {
                      // Style des font text
@@ -10646,7 +10835,7 @@ index ef4272314..1bd71c960 100644
 +            $objWriter->endElement();
 +        }, $shape);
 +    }
- 
++
 +    /**
 +     * The value of an ODF fo:border property: a width, a style and a colour.
 +     */
@@ -10673,7 +10862,7 @@ index ef4272314..1bd71c960 100644
 +        if (Border::LINE_NONE === $border->getLineStyle()) {
 +            return 'none';
 +        }
-+
+ 
 +        switch ($border->getDashStyle()) {
 +            case Border::DASH_SOLID:
                  break;
@@ -10852,7 +11041,7 @@ index ef4272314..1bd71c960 100644
                          }
                      }
                  }
-@@ -1182,252 +1876,253 @@ class Content extends AbstractDecoratorWriter
+@@ -1182,252 +1882,253 @@ class Content extends AbstractDecoratorWriter
      }
  
      /**
@@ -11293,7 +11482,7 @@ index ef4272314..1bd71c960 100644
              case Fill::FILL_SOLID:
                  $objWriter->writeAttribute('draw:fill', 'solid');
                  $objWriter->writeAttribute('draw:fill-color', '#' . $oFill->getStartColor()->getRGB());
-@@ -1441,6 +2136,17 @@ class Content extends AbstractDecoratorWriter
+@@ -1441,6 +2142,17 @@ class Content extends AbstractDecoratorWriter
          }
      }
  
